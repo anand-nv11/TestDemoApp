@@ -47,7 +47,7 @@ struct BoxDemoScreen: View {
                     .padding()
                     .background(.background, in: RoundedRectangle(cornerRadius: 12))
             }
-            DemoSection(title: "Advanced + Custom Styling", explanation: "Tap to animate a reusable status box.") {
+            DemoSection(title: "Advanced + Custom Styling", explanation: "Tap to animate a reusable status box area.") {
                 Button { isHighlighted.toggle() } label: {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Warehouse Capacity", systemImage: "shippingbox.fill")

@@ -14,7 +14,7 @@ struct ContentView: View {
 }
 
 struct ComponentCatalogScreen: View {
-    @State private var searchText = ""
+    @State private var searchText = "" // variable create
 
     private var filteredComponents: [ComponentDemo] {
         guard !searchText.isEmpty else { return DemoRepository.components }

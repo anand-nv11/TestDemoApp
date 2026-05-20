@@ -34,6 +34,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppDemoModels.swift,
+				README.md,
 				ViewModels/AppDemoFormViewModel.swift,
 				Views/Components/AppReusableComponents.swift,
 				Views/Screens/AppComponentScreens.swift,
