@@ -37,7 +37,8 @@ struct ComponentDetailScreen: View {
 
 struct BoxDemoScreen: View {
     @State private var isHighlighted = false
-
+    @State private var isSelected = false
+    
     var body: some View {
         DemoScrollScreen {
             ComponentIntro(title: "Box", text: "SwiftUI does not have a Box type; real apps build boxes from stacks, frames, backgrounds, overlays, and clipping modifiers.")
