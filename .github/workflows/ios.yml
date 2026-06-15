@@ -34,18 +34,31 @@ jobs:
         run: |
           npm install -g appium
           appium driver install xcuitest
+          appium driver list --installed
 
-      - name: Show Available Simulators
+      - name: Show Repository Structure
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 3 -type d
+          find . -name "pom.xml"
+
+      - name: Show Simulators
         run: |
           xcrun simctl list devices available
 
-      - name: Build App
+      - name: Build iOS App
         run: |
           xcodebuild \
             -scheme SwiftUIDemoAllComponents \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             clean build
+
+      - name: Create Report Folders
+        run: |
+          mkdir -p AppiumTests/allure-results
+          mkdir -p AppiumTests/screenshots
 
       - name: Start Appium Server
         run: |
@@ -63,6 +76,7 @@ jobs:
         with:
           name: allure-results
           path: AppiumTests/allure-results
+          if-no-files-found: ignore
 
       - name: Upload Screenshots
         if: always()
@@ -70,6 +84,7 @@ jobs:
         with:
           name: screenshots
           path: AppiumTests/screenshots
+          if-no-files-found: ignore
 
       - name: Upload Appium Log
         if: always()
