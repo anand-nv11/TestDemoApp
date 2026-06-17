@@ -86,12 +86,21 @@ jobs:
         run: |
           nohup appium --base-path / > appium.log 2>&1 &
           sleep 20
+
+          echo "===== APPIUM LOG ====="
           cat appium.log
+
+      - name: Verify Appium Server
+        run: |
+          curl http://127.0.0.1:4723/status
 
       - name: Run Appium Tests
         run: |
           cd AppiumTests
-          mvn clean test -DbundleId=test.com.SwiftUIDemoAllComponents
+          mvn clean test \
+          -X \
+          -e \
+          -DbundleId=test.com.SwiftUIDemoAllComponents
 
       - name: Upload Allure Results
         if: always()
@@ -99,6 +108,14 @@ jobs:
         with:
           name: allure-results
           path: AppiumTests/allure-results
+          if-no-files-found: ignore
+
+      - name: Upload Surefire Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: AppiumTests/target/surefire-reports
           if-no-files-found: ignore
 
       - name: Upload Screenshots
