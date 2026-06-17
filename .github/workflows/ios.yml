@@ -54,20 +54,13 @@ jobs:
 
       - name: Boot iOS 26.4 iPhone Simulator
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available | awk '
-            /-- iOS 26.4 --/ {found=1; next}
-            /-- iOS/ {found=0}
-            found && /iPhone/ && /\(Shutdown\)/ {
-              match($0, /\(([A-F0-9-]+)\)/, arr)
-              print arr[1]
-              exit
-            }
-          ')
+          DEVICE_ID=$(xcrun simctl list devices available | sed -n '/-- iOS 26.4 --/,/-- iOS/p' | grep "iPhone" | grep "Shutdown" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
 
           echo "DEVICE_ID=$DEVICE_ID"
 
           if [ -z "$DEVICE_ID" ]; then
             echo "No iOS 26.4 iPhone simulator found on this runner"
+            xcrun simctl list devices available
             exit 1
           fi
 
