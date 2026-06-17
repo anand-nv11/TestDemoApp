@@ -40,7 +40,7 @@ jobs:
         run: |
           pwd
           ls -la
-          find . -maxdepth 3 -type d
+          find . -maxdepth 4 -type d
           find . -name "pom.xml"
 
       - name: Show Simulators
@@ -53,7 +53,51 @@ jobs:
             -scheme SwiftUIDemoAllComponents \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
             clean build
+
+          echo "Find generated .app"
+          find build -name "*.app"
+
+      - name: Boot Available iPhone Simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available | grep -E "iPhone.*\(" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          echo "DEVICE_ID=$DEVICE_ID"
+
+          if [ -z "$DEVICE_ID" ]; then
+            echo "No available iPhone simulator found"
+            exit 1
+          fi
+
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+
+      - name: Check Bundle ID
+        run: |
+          APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
+          echo "APP_PATH=$APP_PATH"
+
+          if [ -z "$APP_PATH" ]; then
+            echo "App file not found"
+            exit 1
+          fi
+
+          /usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP_PATH/Info.plist"
+
+      - name: Install App on Simulator
+        run: |
+          APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
+          echo "APP_PATH=$APP_PATH"
+          echo "DEVICE_ID=$DEVICE_ID"
+
+          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+
+          echo "Installed Apps:"
+          xcrun simctl listapps "$DEVICE_ID" | grep "test.com.SwiftUIDemoAllComponents" || true
+
+          xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
 
       - name: Create Report Folders
         run: |
@@ -62,13 +106,14 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          nohup appium > appium.log 2>&1 &
+          nohup appium --base-path / > appium.log 2>&1 &
           sleep 20
+          cat appium.log
 
       - name: Run Appium Tests
         run: |
           cd AppiumTests
-          mvn clean test
+          mvn clean test -DbundleId=test.com.SwiftUIDemoAllComponents
 
       - name: Upload Allure Results
         if: always()
@@ -92,3 +137,4 @@ jobs:
         with:
           name: appium-log
           path: appium.log
+          if-no-files-found: ignore
