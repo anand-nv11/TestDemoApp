@@ -46,24 +46,28 @@ jobs:
           xcodebuild \
             -scheme SwiftUIDemoAllComponents \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,OS=26.4.1,name=iPhone 17' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             clean build
 
           find build -name "*.app"
 
-      - name: Boot iOS 26.4 Simulator
+      - name: Boot iOS 26.4 iPhone Simulator
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | grep "26.4" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-
-          if [ -z "$DEVICE_ID" ]; then
-            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-          fi
+          DEVICE_ID=$(xcrun simctl list devices available | awk '
+            /-- iOS 26.4 --/ {found=1; next}
+            /-- iOS/ {found=0}
+            found && /iPhone/ && /\(Shutdown\)/ {
+              match($0, /\(([A-F0-9-]+)\)/, arr)
+              print arr[1]
+              exit
+            }
+          ')
 
           echo "DEVICE_ID=$DEVICE_ID"
 
           if [ -z "$DEVICE_ID" ]; then
-            echo "No iPhone 17 simulator found"
+            echo "No iOS 26.4 iPhone simulator found on this runner"
             exit 1
           fi
 
@@ -75,6 +79,8 @@ jobs:
         run: |
           APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
           echo "APP_PATH=$APP_PATH"
+          echo "DEVICE_ID=$DEVICE_ID"
+
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
 
