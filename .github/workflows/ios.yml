@@ -94,13 +94,21 @@ jobs:
         run: |
           curl http://127.0.0.1:4723/status
 
-      - name: Run Appium Tests
+      - name: Run Appium Tests and Print Reports
         run: |
           cd AppiumTests
-          mvn clean test \
-          -X \
-          -e \
-          -DbundleId=test.com.SwiftUIDemoAllComponents
+
+          mvn clean test -DbundleId=test.com.SwiftUIDemoAllComponents || TEST_FAILED=true
+
+          echo "===== SUREFIRE TXT REPORTS ====="
+          find target/surefire-reports -name "*.txt" -type f -exec cat {} \; || true
+
+          echo "===== SUREFIRE XML REPORTS ====="
+          find target/surefire-reports -name "*.xml" -type f -exec cat {} \; || true
+
+          if [ "$TEST_FAILED" = true ]; then
+            exit 1
+          fi
 
       - name: Upload Allure Results
         if: always()
