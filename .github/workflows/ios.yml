@@ -8,15 +8,15 @@ on:
 
 jobs:
   appium-ios:
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Select Xcode 26
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app
+          sudo xcode-select -s /Applications/Xcode_26.4.1.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
 
       - name: Setup Java
@@ -36,15 +36,9 @@ jobs:
           appium driver install xcuitest
           appium driver list --installed
 
-      - name: Show Repository Structure
-        run: |
-          pwd
-          ls -la
-          find . -maxdepth 4 -type d
-          find . -name "pom.xml"
-
       - name: Show Simulators
         run: |
+          xcrun simctl list runtimes
           xcrun simctl list devices available
 
       - name: Build iOS App
@@ -52,51 +46,36 @@ jobs:
           xcodebuild \
             -scheme SwiftUIDemoAllComponents \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,OS=26.4.1,name=iPhone 17' \
             -derivedDataPath build \
             clean build
 
-          echo "Find generated .app"
           find build -name "*.app"
 
-      - name: Boot Available iPhone Simulator
+      - name: Boot iOS 26.4 Simulator
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available | grep -E "iPhone.*\(" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | grep "26.4" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+
+          if [ -z "$DEVICE_ID" ]; then
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 17 (" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          fi
+
           echo "DEVICE_ID=$DEVICE_ID"
 
           if [ -z "$DEVICE_ID" ]; then
-            echo "No available iPhone simulator found"
+            echo "No iPhone 17 simulator found"
             exit 1
           fi
 
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
-
           echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-
-      - name: Check Bundle ID
-        run: |
-          APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
-          echo "APP_PATH=$APP_PATH"
-
-          if [ -z "$APP_PATH" ]; then
-            echo "App file not found"
-            exit 1
-          fi
-
-          /usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP_PATH/Info.plist"
 
       - name: Install App on Simulator
         run: |
           APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
           echo "APP_PATH=$APP_PATH"
-          echo "DEVICE_ID=$DEVICE_ID"
-
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-
-          echo "Installed Apps:"
-          xcrun simctl listapps "$DEVICE_ID" | grep "test.com.SwiftUIDemoAllComponents" || true
-
           xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
 
       - name: Create Report Folders
