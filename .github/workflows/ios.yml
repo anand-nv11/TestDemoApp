@@ -115,11 +115,15 @@ jobs:
         run: |
           curl -v http://127.0.0.1:4723/status
 
-      - name: Run Appium Tests and Print Reports
+       - name: Run Appium Tests and Print Reports
         run: |
           cd AppiumTests
 
-          mvn clean test -DbundleId=test.com.SwiftUIDemoAllComponents || TEST_FAILED=true
+          mvn clean test \
+            -DbundleId=test.com.SwiftUIDemoAllComponents \
+            -Dudid=$DEVICE_ID \
+            -DdeviceName="iPhone" \
+            -DplatformVersion="26.4" || TEST_FAILED=true
 
           echo "===== SUREFIRE TXT REPORTS ====="
           find target/surefire-reports -name "*.txt" -type f -exec cat {} \; || true
