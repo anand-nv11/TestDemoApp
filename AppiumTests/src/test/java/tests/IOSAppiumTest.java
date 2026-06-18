@@ -26,19 +26,28 @@ public class IOSAppiumTest {
 
         DesiredCapabilities caps = new DesiredCapabilities();
 
+        String bundleId = System.getProperty("bundleId", "test.com.SwiftUIDemoAllComponents");
+        String udid = System.getProperty("udid");
+        String deviceName = System.getProperty("deviceName", "iPhone 17");
+        String platformVersion = System.getProperty("platformVersion", "26.4");
+
         caps.setCapability("platformName", "iOS");
         caps.setCapability("appium:automationName", "XCUITest");
 
-        // GitHub Actions usually uses iPhone 16 / 15 depending on runner image.
-        // If this fails, check simulator list from workflow logs.
-        caps.setCapability("appium:deviceName", System.getProperty("deviceName", "iPhone 16"));
-        caps.setCapability("appium:platformVersion", System.getProperty("platformVersion", ""));
+        // Important: use already booted simulator from GitHub Actions
+        if (udid != null && !udid.isEmpty()) {
+            caps.setCapability("appium:udid", udid);
+        }
 
-        // Update this bundleId if your app bundle id is different.
-        caps.setCapability("appium:bundleId", System.getProperty("bundleId", "test.com.SwiftUIDemoAllComponents"));
+        caps.setCapability("appium:deviceName", deviceName);
+        caps.setCapability("appium:platformVersion", platformVersion);
+        caps.setCapability("appium:bundleId", bundleId);
 
         caps.setCapability("appium:noReset", true);
         caps.setCapability("appium:newCommandTimeout", 120);
+        caps.setCapability("appium:wdaLaunchTimeout", 180000);
+        caps.setCapability("appium:wdaConnectionTimeout", 180000);
+        caps.setCapability("appium:simulatorStartupTimeout", 180000);
 
         driver = new IOSDriver(new URL("http://127.0.0.1:4723"), caps);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
