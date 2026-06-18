@@ -36,12 +36,6 @@ jobs:
           appium driver install xcuitest
           appium driver list --installed
 
-      - name: Verify Appium Installation
-        run: |
-          which appium
-          appium --version
-          appium driver list --installed
-
       - name: Show Simulators
         run: |
           xcrun simctl list runtimes
@@ -65,7 +59,7 @@ jobs:
           echo "DEVICE_ID=$DEVICE_ID"
 
           if [ -z "$DEVICE_ID" ]; then
-            echo "No iOS 26.4 iPhone simulator found on this runner"
+            echo "No iOS 26.4 iPhone simulator found"
             xcrun simctl list devices available
             exit 1
           fi
@@ -78,8 +72,6 @@ jobs:
         run: |
           APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
           echo "APP_PATH=$APP_PATH"
-          echo "DEVICE_ID=$DEVICE_ID"
-
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
 
@@ -90,15 +82,7 @@ jobs:
 
       - name: Start Appium Server
         run: |
-          appium --version
-
-          nohup appium \
-            --address 127.0.0.1 \
-            --port 4723 \
-            --base-path / \
-            > appium.log 2>&1 &
-
-          echo "Waiting for Appium to start..."
+          nohup appium --address 127.0.0.1 --port 4723 --base-path / > appium.log 2>&1 &
 
           for i in {1..30}; do
             if curl -s http://127.0.0.1:4723/status > /dev/null; then
@@ -108,7 +92,6 @@ jobs:
             sleep 2
           done
 
-          echo "===== APPIUM LOG ====="
           cat appium.log
 
       - name: Verify Appium Server
@@ -123,13 +106,11 @@ jobs:
             -DbundleId=test.com.SwiftUIDemoAllComponents \
             -Dudid=$DEVICE_ID \
             -DdeviceName="iPhone" \
-            -DplatformVersion="26.4" || TEST_FAILED=true
+            -DplatformVersion="26.4" \
+            -Dsurefire.useFile=false || TEST_FAILED=true
 
           echo "===== SUREFIRE TXT REPORTS ====="
           find target/surefire-reports -name "*.txt" -type f -exec cat {} \; || true
-
-          echo "===== SUREFIRE XML REPORTS ====="
-          find target/surefire-reports -name "*.xml" -type f -exec cat {} \; || true
 
           if [ "$TEST_FAILED" = true ]; then
             exit 1
