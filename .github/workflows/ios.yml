@@ -115,7 +115,7 @@ jobs:
         run: |
           curl -v http://127.0.0.1:4723/status
 
-       - name: Run Appium Tests and Print Reports
+      - name: Run Appium Tests and Print Reports
         run: |
           cd AppiumTests
 
