@@ -39,6 +39,7 @@ jobs:
       - name: Show Simulators
         run: |
           xcrun simctl list runtimes
+          xcrun simctl list devicetypes
           xcrun simctl list devices available
 
       - name: Build iOS App
@@ -64,14 +65,22 @@ jobs:
             exit 1
           fi
 
+          DEVICE_NAME=$(xcrun simctl list devices available | grep "$DEVICE_ID" | sed -E 's/^[[:space:]]*([^()]+).*/\1/' | xargs)
+
+          echo "DEVICE_NAME=$DEVICE_NAME"
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
-          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
 
       - name: Install App on Simulator
         run: |
           APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
           echo "APP_PATH=$APP_PATH"
+          echo "DEVICE_ID=$DEVICE_ID"
+          echo "DEVICE_NAME=$DEVICE_NAME"
+
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
 
@@ -104,8 +113,8 @@ jobs:
 
           mvn clean test \
             -DbundleId=test.com.SwiftUIDemoAllComponents \
-            -Dudid=$DEVICE_ID \
-            -DdeviceName="iPhone" \
+            -Dudid="$DEVICE_ID" \
+            -DdeviceName="$DEVICE_NAME" \
             -DplatformVersion="26.4" \
             -Dsurefire.useFile=false || TEST_FAILED=true
 
