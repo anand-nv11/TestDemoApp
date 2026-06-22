@@ -1,5 +1,8 @@
 import SwiftUI
 
+// Shared SwiftUI building blocks used across the component demo screens.
+
+/// Displays a titled demo area with explanatory text and custom content.
 struct DemoSection<Content: View>: View {
     let title: String
     let explanation: String
@@ -22,6 +25,7 @@ struct DemoSection<Content: View>: View {
     }
 }
 
+/// Presents highlighted informational content with a title and SF Symbol.
 struct InfoBox<Content: View>: View {
     let title: String
     let systemImage: String
@@ -39,6 +43,7 @@ struct InfoBox<Content: View>: View {
     }
 }
 
+/// Applies the prominent full-width style used for primary actions.
 struct PrimaryActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -53,6 +58,7 @@ struct PrimaryActionButtonStyle: ButtonStyle {
     }
 }
 
+/// Shows a compact status label with an icon and configurable tint.
 struct StatusPill: View {
     let text: String
     let systemImage: String
@@ -69,6 +75,7 @@ struct StatusPill: View {
     }
 }
 
+/// Provides a tappable checkbox row backed by a Boolean binding.
 struct CheckBox: View {
     let title: String
     @Binding var isOn: Bool
@@ -89,6 +96,7 @@ struct CheckBox: View {
     }
 }
 
+/// Represents one selectable radio-style option for a hashable value.
 struct RadioOption<Value: Hashable>: View {
     let title: String
     let subtitle: String
@@ -117,6 +125,7 @@ struct RadioOption<Value: Hashable>: View {
     }
 }
 
+/// Displays a help icon that reveals contextual guidance in a popover.
 struct HelpButton: View {
     let title: String
     let message: String
@@ -142,6 +151,7 @@ struct HelpButton: View {
     }
 }
 
+/// Draws a horizontal divider with an optional centered label.
 struct CustomSeparator: View {
     var label: String? = nil
 
@@ -161,6 +171,7 @@ struct CustomSeparator: View {
     }
 }
 
+/// Reuses `InfoBox` to introduce a component category or screen.
 struct ComponentIntro: View {
     let title: String
     let text: String
@@ -174,6 +185,7 @@ struct ComponentIntro: View {
     }
 }
 
+/// Preview coverage for the shared component building blocks.
 struct ReusableComponents_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 16) {
