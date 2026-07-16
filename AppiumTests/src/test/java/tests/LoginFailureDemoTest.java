@@ -2,29 +2,37 @@ package tests;
 
 import base.BaseTest;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 import pages.LoginPage;
 
 public class LoginFailureDemoTest extends BaseTest {
 
-    @Test(
-            groups = "failure-demo",
-            description = "Intentional failure for report verification"
-    )
+    @Test(description = "Intentional login failure for report testing")
     public void intentionalLoginFailure() {
+
+        boolean runFailureDemo = Boolean.parseBoolean(
+                System.getProperty("runFailureDemo", "false")
+        );
+
+        if (!runFailureDemo) {
+            throw new SkipException(
+                    "Failure demo is disabled. Run with -DrunFailureDemo=true"
+            );
+        }
+
         LoginPage loginPage = new LoginPage(driver);
 
         loginPage.enterEmail("invalid-email");
         loginPage.enterPassword("123");
-        loginPage.tapLogin();
 
-        String actualError = loginPage.getEmailError();
+        String actualError = loginPage.getErrorMessage();
 
-        // Intentionally incorrect expected message
         Assert.assertEquals(
                 actualError,
-                "Login successful",
-                "Intentional failure: invalid credentials must not log in"
+                "Login Successful",
+                "Intentional failure for GitHub Actions report demo"
         );
     }
 }
+

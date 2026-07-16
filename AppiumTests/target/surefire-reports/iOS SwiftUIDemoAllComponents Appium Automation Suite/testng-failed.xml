@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Failed suite [iOS SwiftUIDemoAllComponents Appium Automation Suite]" guice-stage="DEVELOPMENT" verbose="0">
+  <listeners>
+    <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    <listener class-name="listeners.TestListener"/>
+  </listeners>
+  <test thread-count="5" name="SwiftUI Component Tests(failed)" verbose="0">
+    <classes>
+      <class name="tests.LoginScreenTest">
+        <methods>
+          <include name="setUp"/>
+          <include name="tearDown"/>
+          <include name="verifyValidCredentialsEnableLoginButton"/>
+          <include name="verifyLoginScreenIsVisible"/>
+          <include name="verifyWeakPasswordValidation"/>
+          <include name="verifyValidLogin"/>
+          <include name="verifyInvalidEmailValidation"/>
+        </methods>
+      </class> <!-- tests.LoginScreenTest -->
+    </classes>
+  </test> <!-- SwiftUI Component Tests(failed) -->
+</suite> <!-- Failed suite [iOS SwiftUIDemoAllComponents Appium Automation Suite] -->

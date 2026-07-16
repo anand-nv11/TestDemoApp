@@ -1,0 +1,1 @@
+{"uuid":"1a3e4191-9a58-478c-aae3-da6e42ba32a4","name":"tests.IOSAppiumTest.tearDown","children":["23c3d96a-d147-44b8-8dae-1ff24c0f9628"],"description":"","befores":[],"afters":[{"name":"tearDown","status":"broken","stage":"finished","description":"","steps":[],"attachments":[],"parameters":[],"start":1784203066156,"stop":1784203066156}],"start":1784203066156,"stop":1784203066156}

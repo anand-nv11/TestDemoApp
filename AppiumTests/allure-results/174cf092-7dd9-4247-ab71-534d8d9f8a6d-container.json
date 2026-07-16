@@ -1,0 +1,1 @@
+{"uuid":"174cf092-7dd9-4247-ab71-534d8d9f8a6d","name":"tests.IOSAppiumTest.setUp","children":["ac5acd64-9823-4e35-9854-1589614ca45c"],"description":"","befores":[{"name":"setUp","status":"broken","stage":"finished","description":"","steps":[],"attachments":[],"parameters":[],"start":1784203066158,"stop":1784203066158}],"afters":[],"start":1784203066158,"stop":1784203066158}
