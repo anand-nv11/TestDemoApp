@@ -1,15 +1,16 @@
 package base;
 
 import io.appium.java_client.ios.IOSDriver;
+import io.appium.java_client.ios.options.XCUITestOptions;
 import io.qameta.allure.Attachment;
 import org.openqa.selenium.OutputType;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import utils.ScreenshotUtil;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 
@@ -17,55 +18,126 @@ public class BaseTest {
 
     protected IOSDriver driver;
 
-    @BeforeMethod
+    @BeforeMethod(alwaysRun = true)
     public void setUp() throws Exception {
-        DesiredCapabilities caps = new DesiredCapabilities();
 
-        String bundleId = System.getProperty("bundleId", "test.com.SwiftUIDemoAllComponents");
+        String serverUrl = System.getProperty(
+                "appiumServerUrl",
+                "http://127.0.0.1:4723"
+        );
+
+        String bundleId = System.getProperty(
+                "bundleId",
+                "test.com.TodoApp"
+        );
+
         String udid = System.getProperty("udid");
-        String deviceName = System.getProperty("deviceName", "iPhone 17");
-        String platformVersion = System.getProperty("platformVersion", "26.4");
 
-        caps.setCapability("platformName", "iOS");
-        caps.setCapability("appium:automationName", "XCUITest");
+        String deviceName = System.getProperty(
+                "deviceName",
+                "iPhone 17 Pro"
+        );
 
-        if (udid != null && !udid.isEmpty()) {
-            caps.setCapability("appium:udid", udid);
+        String platformVersion = System.getProperty(
+                "platformVersion",
+                "26.4"
+        );
+
+        if (udid == null || udid.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Simulator UDID is missing. Pass -Dudid=YOUR_SIMULATOR_UDID"
+            );
         }
 
-        caps.setCapability("appium:deviceName", deviceName);
-        caps.setCapability("appium:platformVersion", platformVersion);
-        caps.setCapability("appium:bundleId", bundleId);
+        XCUITestOptions options = new XCUITestOptions()
+                .setDeviceName(deviceName)
+                .setPlatformVersion(platformVersion)
+                .setUdid(udid)
+                .setBundleId(bundleId)
+                .setNoReset(true)
+                .setNewCommandTimeout(Duration.ofSeconds(300))
+                .setWdaLaunchTimeout(Duration.ofSeconds(180))
+                .setWdaConnectionTimeout(Duration.ofSeconds(180));
 
-        caps.setCapability("appium:noReset", true);
-        caps.setCapability("appium:newCommandTimeout", 120);
-        caps.setCapability("appium:wdaLaunchTimeout", 180000);
-        caps.setCapability("appium:wdaConnectionTimeout", 180000);
-        caps.setCapability("appium:simulatorStartupTimeout", 180000);
+        URL appiumUrl = URI.create(serverUrl).toURL();
 
-        driver = new IOSDriver(new URL("http://127.0.0.1:4723"), caps);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        System.out.println("==================================");
+        System.out.println("Appium Server : " + appiumUrl);
+        System.out.println("Bundle ID     : " + bundleId);
+        System.out.println("Device Name   : " + deviceName);
+        System.out.println("Platform      : " + platformVersion);
+        System.out.println("UDID          : " + udid);
+        System.out.println("==================================");
+
+        driver = new IOSDriver(appiumUrl, options);
+
+        driver.manage()
+                .timeouts()
+                .implicitlyWait(Duration.ofSeconds(10));
+
+        System.out.println(
+                "Appium Session Created : "
+                        + driver.getSessionId()
+        );
     }
 
-    @Attachment(value = "Screenshot", type = "image/png")
+    /**
+     * Used by TestListener
+     */
+    public IOSDriver getDriver() {
+        return driver;
+    }
+
+    @Attachment(value = "Failure Screenshot", type = "image/png")
     public byte[] attachScreenshot() {
-        if (driver == null) return new byte[0];
+
+        if (driver == null) {
+            return new byte[0];
+        }
+
         return driver.getScreenshotAs(OutputType.BYTES);
     }
 
-    @AfterMethod
+    @AfterMethod(alwaysRun = true)
     public void tearDown(ITestResult result) {
+
         try {
+
             if (driver != null && !result.isSuccess()) {
-                File screenshot = driver.getScreenshotAs(OutputType.FILE);
-                ScreenshotUtil.saveScreenshot(screenshot, result.getName());
+
+                File screenshot =
+                        driver.getScreenshotAs(OutputType.FILE);
+
+                ScreenshotUtil.saveScreenshot(
+                        screenshot,
+                        result.getName()
+                );
+
                 attachScreenshot();
+
+                System.out.println(
+                        "Screenshot captured for : "
+                                + result.getName()
+                );
             }
+
         } catch (Exception e) {
-            System.out.println("Screenshot capture failed: " + e.getMessage());
+
+            System.out.println(
+                    "Screenshot capture failed : "
+                            + e.getMessage()
+            );
+
         } finally {
+
             if (driver != null) {
-                driver.quit();
+
+                try {
+                    driver.quit();
+                } catch (Exception ignored) {
+                }
+
+                driver = null;
             }
         }
     }
