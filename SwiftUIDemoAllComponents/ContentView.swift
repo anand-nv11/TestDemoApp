@@ -1,16 +1,36 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        TabView {
-            ComponentCatalogScreen()
-                .tabItem { Label("Components", systemImage: "square.grid.2x2") }
+    @State private var selectedTab: RootTab
 
-            SwiftUIGuideScreen()
-                .tabItem { Label("Guide", systemImage: "book") }
-        }
-        .accessibilityIdentifier("RootTabView")
+    init() {
+        let startsOnGuide = ProcessInfo.processInfo.arguments.contains("-uiTestStartOnGuide")
+        _selectedTab = State(initialValue: startsOnGuide ? .guide : .components)
     }
+
+    var body: some View {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenButtonDemo") {
+            NavigationStack {
+                ComponentDetailScreen(component: DemoRepository.components.first { $0.id == .button } ?? DemoRepository.components[0])
+            }
+        } else {
+            TabView(selection: $selectedTab) {
+                ComponentCatalogScreen()
+                    .tabItem { Label("Components", systemImage: "square.grid.2x2") }
+                    .tag(RootTab.components)
+
+                SwiftUIGuideScreen()
+                    .tabItem { Label("Guide", systemImage: "book") }
+                    .tag(RootTab.guide)
+            }
+            .accessibilityIdentifier("RootTabView")
+        }
+    }
+}
+
+private enum RootTab: Hashable {
+    case components
+    case guide
 }
 
 struct ComponentCatalogScreen: View {

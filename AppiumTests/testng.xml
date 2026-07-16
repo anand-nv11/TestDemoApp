@@ -12,6 +12,7 @@
             <class name="tests.BasicComponentTest"/>
             <class name="tests.ComponentNavigationTest"/>
             <class name="tests.ComponentSearchTest"/>
+            <class name="tests.LoginScreenTest"/>
         </classes>
     </test>
 </suite>

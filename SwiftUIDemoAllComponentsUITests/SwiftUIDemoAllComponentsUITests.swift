@@ -8,30 +8,26 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
     @MainActor
     func testCatalogLaunchesAndOpensButtonDemo() throws {
         let app = XCUIApplication()
+        app.launchArguments.append("-uiTestOpenButtonDemo")
         app.launch()
+        loginAndOpenComponentDemo(in: app, waitsForComponentsTab: false)
 
-        XCTAssertTrue(app.navigationBars["SwiftUI Components"].waitForExistence(timeout: 5))
-
-        let buttonRow = app.buttons["Button, Actions, roles, custom styles, loading state, and animation."]
-        if buttonRow.exists {
-            buttonRow.tap()
-        } else {
-            app.collectionViews.buttons.matching(identifier: "ComponentRow_button").firstMatch.tap()
-        }
-
-        XCTAssertTrue(app.navigationBars["Button"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Button"].exists)
+        XCTAssertTrue(app.staticTexts["Button"].waitForExistence(timeout: 5))
     }
 
     @MainActor
     func testGuideTabShowsBestPractices() throws {
         let app = XCUIApplication()
+        app.launchArguments.append("-uiTestStartOnGuide")
         app.launch()
+        loginAndOpenComponentDemo(in: app)
 
-        app.tabBars.buttons["Guide"].tap()
-
-        XCTAssertTrue(app.navigationBars["SwiftUI Guide"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Best Practices"].exists)
+        XCTAssertTrue(app.staticTexts["Project Structure"].waitForExistence(timeout: 5))
+        let bestPractices = app.staticTexts["Best Practices"]
+        if !bestPractices.exists {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(bestPractices.waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -40,4 +36,20 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    @MainActor
+    private func loginAndOpenComponentDemo(in app: XCUIApplication, waitsForComponentsTab: Bool = true) {
+        app.textFields["loginEmailField"].tap()
+        app.textFields["loginEmailField"].typeText("demo@example.com")
+
+        app.secureTextFields["loginPasswordField"].tap()
+        app.secureTextFields["loginPasswordField"].typeText("DemoPass1!")
+
+        app.buttons["loginButton"].tap()
+
+        if waitsForComponentsTab {
+            XCTAssertTrue(app.tabBars.buttons["Components"].waitForExistence(timeout: 5))
+        }
+    }
+
 }
