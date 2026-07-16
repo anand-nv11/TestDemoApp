@@ -2,128 +2,288 @@ name: iOS Appium Automation - CI-CD
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      run_failure_demo:
+        description: "Run intentional LoginFailureDemoTest"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   appium-ios:
     runs-on: macos-26
+    timeout-minutes: 60
+
+    env:
+      PLATFORM_VERSION: "26.4"
+      PREFERRED_DEVICE_NAME: "iPhone 17"
+      BUNDLE_ID: "test.com.SwiftUIDemoAllComponents"
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Select Xcode 26
+      - name: Select Xcode 26.4.1
+        shell: bash
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.4.1.app || sudo xcode-select -s /Applications/Xcode.app
+          set -euo pipefail
+
+          if [ -d "/Applications/Xcode_26.4.1.app/Contents/Developer" ]; then
+            sudo xcode-select -s "/Applications/Xcode_26.4.1.app/Contents/Developer"
+          else
+            echo "Xcode 26.4.1 not found. Using default Xcode."
+            sudo xcode-select -s "/Applications/Xcode.app/Contents/Developer"
+          fi
+
+          xcode-select -p
           xcodebuild -version
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17 '
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: AppiumTests/pom.xml
 
       - name: Setup NodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install Appium
+      - name: Install Appium and XCUITest Driver
+        shell: bash
         run: |
-          npm install -g appium
+          set -euo pipefail
+
+          npm install --global appium@latest
+          appium --version
           appium driver install xcuitest
           appium driver list --installed
+          appium driver doctor xcuitest || true
 
-      - name: Show Simulators
+      - name: Show Available Simulators
+        shell: bash
         run: |
           xcrun simctl list runtimes
           xcrun simctl list devicetypes
           xcrun simctl list devices available
 
-      - name: Build iOS App
+      - name: Select and Boot iOS Simulator
+        shell: bash
         run: |
-          xcodebuild \
-            -scheme SwiftUIDemoAllComponents \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build \
-            clean build
+          set -euo pipefail
 
-          find build -name "*.app"
-
-      - name: Boot iOS 26.4 iPhone Simulator
-        run: |
-          DEVICE_ID=$(xcrun simctl list devices available | sed -n '/-- iOS 26.4 --/,/-- iOS/p' | grep "iPhone" | grep "Shutdown" | head -1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-
-          echo "DEVICE_ID=$DEVICE_ID"
+          DEVICE_ID=$(xcrun simctl list devices available |
+            sed -n "/-- iOS $PLATFORM_VERSION --/,/-- iOS/p" |
+            grep "$PREFERRED_DEVICE_NAME (" |
+            head -1 |
+            sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/' || true)
 
           if [ -z "$DEVICE_ID" ]; then
-            echo "No iOS 26.4 iPhone simulator found"
+            DEVICE_ID=$(xcrun simctl list devices available |
+              sed -n "/-- iOS $PLATFORM_VERSION --/,/-- iOS/p" |
+              grep "iPhone" |
+              head -1 |
+              sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/' || true)
+          fi
+
+          if [ -z "$DEVICE_ID" ]; then
+            echo "ERROR: No iOS $PLATFORM_VERSION iPhone simulator was found."
             xcrun simctl list devices available
             exit 1
           fi
 
-          DEVICE_NAME=$(xcrun simctl list devices available | grep "$DEVICE_ID" | sed -E 's/^[[:space:]]*([^()]+).*/\1/' | xargs)
+          DEVICE_NAME=$(xcrun simctl list devices available |
+            grep "$DEVICE_ID" |
+            sed -E 's/^[[:space:]]*([^()]+).*/\1/' |
+            xargs)
 
-          echo "DEVICE_NAME=$DEVICE_NAME"
-          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-          echo "DEVICE_NAME=$DEVICE_NAME" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$DEVICE_NAME" >> "$GITHUB_ENV"
+          echo "DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
 
-          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
+          xcrun simctl boot "$DEVICE_ID"
           xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl list devices | grep "$DEVICE_ID"
+
+      - name: Build iOS App
+        shell: bash
+        run: |
+          set -o pipefail
+
+          rm -rf "$GITHUB_WORKSPACE/build"
+
+          xcodebuild \
+            -scheme "SwiftUIDemoAllComponents" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$GITHUB_WORKSPACE/build" \
+            clean build | tee "$GITHUB_WORKSPACE/xcodebuild.log"
+
+          find "$GITHUB_WORKSPACE/build/Build/Products" -type d -name "*.app" -print
+
+      - name: Find SwiftUI Application
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH=$(find "$GITHUB_WORKSPACE/build/Build/Products" \
+            -type d \
+            -path "*Debug-iphonesimulator*" \
+            -name "SwiftUIDemoAllComponents.app" |
+            head -1)
+
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: SwiftUIDemoAllComponents.app was not found."
+            find "$GITHUB_WORKSPACE/build" -type d -name "*.app" -print || true
+            exit 1
+          fi
+
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
 
       - name: Install App on Simulator
+        shell: bash
         run: |
-          APP_PATH=$(find build -name "SwiftUIDemoAllComponents.app" | head -1)
-          echo "APP_PATH=$APP_PATH"
-          echo "DEVICE_ID=$DEVICE_ID"
-          echo "DEVICE_NAME=$DEVICE_NAME"
+          set -euo pipefail
 
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-          xcrun simctl launch "$DEVICE_ID" test.com.SwiftUIDemoAllComponents || true
+          xcrun simctl get_app_container "$DEVICE_ID" "$BUNDLE_ID"
+          xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
 
       - name: Create Report Folders
+        shell: bash
         run: |
           mkdir -p AppiumTests/allure-results
           mkdir -p AppiumTests/screenshots
+          mkdir -p AppiumTests/videos
 
-      - name: Start Appium Server
+      - name: Start Simulator Video Recording
+        shell: bash
         run: |
-          nohup appium --address 127.0.0.1 --port 4723 --base-path / > appium.log 2>&1 &
+          set -euo pipefail
 
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:4723/status > /dev/null; then
-              echo "Appium Server Started"
+          xcrun simctl io "$DEVICE_ID" recordVideo \
+            --codec h264 \
+            "$GITHUB_WORKSPACE/AppiumTests/videos/simulator-test.mp4" \
+            > "$GITHUB_WORKSPACE/simulator-video.log" 2>&1 &
+
+          echo "VIDEO_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Start and Verify Appium Server
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          nohup appium \
+            --address 127.0.0.1 \
+            --port 4723 \
+            --log-level debug \
+            --log-timestamp \
+            > "$GITHUB_WORKSPACE/appium.log" 2>&1 &
+
+          echo "APPIUM_PID=$!" >> "$GITHUB_ENV"
+          SERVER_READY=false
+
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail "http://127.0.0.1:4723/status" \
+              > "$GITHUB_WORKSPACE/appium-status.json"; then
+              SERVER_READY=true
+              cat "$GITHUB_WORKSPACE/appium-status.json"
               break
             fi
             sleep 2
           done
 
-          cat appium.log
-
-      - name: Verify Appium Server
-        run: |
-          curl -v http://127.0.0.1:4723/status
-
-      - name: Run Appium Tests and Print Reports
-        run: |
-          cd AppiumTests
-
-          mvn clean test \
-            -DbundleId=test.com.SwiftUIDemoAllComponents \
-            -Dudid="$DEVICE_ID" \
-            -DdeviceName="$DEVICE_NAME" \
-            -DplatformVersion="26.4" \
-            -Dsurefire.useFile=false || TEST_FAILED=true
-
-          echo "===== SUREFIRE TXT REPORTS ====="
-          find target/surefire-reports -name "*.txt" -type f -exec cat {} \; || true
-
-          if [ "$TEST_FAILED" = true ]; then
+          if [ "$SERVER_READY" != "true" ]; then
+            cat "$GITHUB_WORKSPACE/appium.log" || true
             exit 1
           fi
+
+      - name: Verify Maven Dependencies
+        working-directory: AppiumTests
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          mvn -version
+          mvn dependency:tree -Dincludes=io.appium:java-client,org.seleniumhq.selenium
+
+      - name: Verify TestNG Test Files
+        working-directory: AppiumTests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          find src/test/java -type f -name "*.java" -print
+          grep -R "org.testng.annotations.Test" src/test/java || true
+          grep -R "@Test" src/test/java || true
+
+          test -f testng.xml
+          cat testng.xml
+
+          mvn test-compile
+          find target/test-classes -type f -name "*.class" -print
+
+      - name: Run Appium Tests and Print Reports
+        working-directory: AppiumTests
+        shell: bash
+        env:
+          RUN_FAILURE_DEMO: ${{ github.event_name == 'workflow_dispatch' && inputs.run_failure_demo || false }}
+        run: |
+          set +e
+
+          echo "Appium Server: http://127.0.0.1:4723"
+          echo "Bundle ID: $BUNDLE_ID"
+          echo "Device UDID: $DEVICE_ID"
+          echo "Device name: $DEVICE_NAME"
+          echo "Platform version: $PLATFORM_VERSION"
+          echo "Run failure demo: $RUN_FAILURE_DEMO"
+
+          mvn clean test \
+            -DappiumServerUrl="http://127.0.0.1:4723" \
+            -DbundleId="$BUNDLE_ID" \
+            -Dudid="$DEVICE_ID" \
+            -DdeviceName="$DEVICE_NAME" \
+            -DplatformVersion="$PLATFORM_VERSION" \
+            -DrunFailureDemo="$RUN_FAILURE_DEMO" \
+            -Dsurefire.useFile=false
+
+          TEST_EXIT_CODE=$?
+
+          echo "===== MAVEN EXIT CODE: $TEST_EXIT_CODE ====="
+          find target/surefire-reports -type f -print 2>/dev/null || true
+
+          find target/surefire-reports -type f -name "*.txt" \
+            -exec sh -c 'echo "----- $1 -----"; cat "$1"' _ {} \; \
+            2>/dev/null || true
+
+          find target/surefire-reports -type f -name "*.xml" \
+            -exec sh -c 'echo "----- $1 -----"; cat "$1"' _ {} \; \
+            2>/dev/null || true
+
+          if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+            cat "$GITHUB_WORKSPACE/appium.log" || true
+          fi
+
+          exit "$TEST_EXIT_CODE"
+
+      - name: Stop Simulator Video Recording
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${VIDEO_PID:-}" ]; then
+            kill -INT "$VIDEO_PID" || true
+            sleep 5
+          fi
+          ls -lh AppiumTests/videos || true
 
       - name: Upload Allure Results
         if: always()
@@ -131,7 +291,7 @@ jobs:
         with:
           name: allure-results
           path: AppiumTests/allure-results
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: Upload Surefire Reports
         if: always()
@@ -139,7 +299,7 @@ jobs:
         with:
           name: surefire-reports
           path: AppiumTests/target/surefire-reports
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: Upload Screenshots
         if: always()
@@ -149,10 +309,27 @@ jobs:
           path: AppiumTests/screenshots
           if-no-files-found: ignore
 
+      - name: Upload Simulator Video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-video
+          path: AppiumTests/videos
+          if-no-files-found: warn
+
       - name: Upload Appium Log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: appium-log
           path: appium.log
+          if-no-files-found: warn
+
+      - name: Upload Xcode Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-build-log
+          path: xcodebuild.log
           if-no-files-found: ignore
+
