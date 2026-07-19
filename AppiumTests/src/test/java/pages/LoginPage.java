@@ -89,16 +89,33 @@ public class LoginPage {
                             locator
                     )
             );
-        } catch (StaleElementReferenceException e) {
-            // If element becomes stale, retry with fresh lookup
+        } catch (TimeoutException e) {
+            // Log the failure with element inspection
             System.err.println(
-                    "Element became stale, retrying clickable wait..."
+                    "Element timeout waiting for clickable: " + locator
             );
-            return wait.until(
-                    ExpectedConditions.elementToBeClickable(
-                            locator
-                    )
-            );
+
+            // Try to inspect what elements are actually available
+            try {
+                List<WebElement> allButtons = driver.findElements(
+                        AppiumBy.className("XCUIElementTypeButton")
+                );
+                System.err.println(
+                        "Found " + allButtons.size() + " buttons on screen"
+                );
+                for (WebElement button : allButtons) {
+                    System.err.println(
+                            "  - Button: " + button.getAttribute("label")
+                                    + " | ID: " + button.getAttribute("accessibility-id")
+                    );
+                }
+            } catch (Exception inspectError) {
+                System.err.println(
+                        "Could not inspect elements: " + inspectError.getMessage()
+                );
+            }
+
+            throw e;
         }
     }
 
@@ -230,8 +247,54 @@ public class LoginPage {
                     throw exception;
                 }
 
+                // Reset fields before retry
+                resetLoginFields();
                 waitBeforeRetry();
             }
+        }
+    }
+
+    /**
+     * Reset login fields for retry attempts
+     */
+    private void resetLoginFields() {
+        try {
+            System.out.println("Resetting login fields for retry...");
+
+            // Try to clear email field
+            try {
+                List<WebElement> emailFields = driver.findElements(
+                        emailFieldLocator
+                );
+                if (!emailFields.isEmpty()) {
+                    emailFields.get(0).clear();
+                    System.out.println("Email field cleared.");
+                }
+            } catch (Exception e) {
+                System.err.println(
+                        "Could not clear email field: " + e.getMessage()
+                );
+            }
+
+            // Try to clear password field
+            try {
+                List<WebElement> passwordFields = driver.findElements(
+                        passwordFieldLocator
+                );
+                if (!passwordFields.isEmpty()) {
+                    passwordFields.get(0).clear();
+                    System.out.println("Password field cleared.");
+                }
+            } catch (Exception e) {
+                System.err.println(
+                        "Could not clear password field: " + e.getMessage()
+                );
+            }
+
+        } catch (Exception e) {
+            System.err.println(
+                    "Error resetting login fields: " + e.getMessage()
+            );
         }
     }
 
