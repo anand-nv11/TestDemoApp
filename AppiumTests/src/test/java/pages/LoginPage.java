@@ -11,7 +11,9 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class LoginPage {
 
@@ -83,100 +85,129 @@ public class LoginPage {
     private WebElement waitForClickable(By locator) {
 
         try {
-            // Avoid ExpectedConditions.elementToBeClickable because it may call
-            // attributes unsupported by WDA (e.g. "accessibility-id"). Use a
-            // custom wait that checks presence, visibility and enabled state.
+            // Custom wait: presence + visible + enabled, ignoring transient/stale errors
             return wait.until(d -> {
                 try {
                     WebElement el = d.findElement(locator);
-                    return (el.isDisplayed() && el.isEnabled()) ? el : null;
-                } catch (NoSuchElementException ex) {
+                    try {
+                        return (el.isDisplayed() && el.isEnabled()) ? el : null;
+                    } catch (StaleElementReferenceException | NoSuchElementException se) {
+                        // Element became stale between find and checks: retry
+                        return null;
+                    }
+                } catch (NoSuchElementException e) {
+                    return null;
+                } catch (Exception e) {
+                    // Any transient exception -> retry
                     return null;
                 }
             });
         } catch (TimeoutException e) {
             // Log the failure with element inspection
-            System.err.println(
-                    "Element timeout waiting for clickable: " + locator
-            );
+            System.err.println("Element timeout waiting for clickable: " + locator);
 
             // Try to inspect what elements are actually available
             try {
                 List<WebElement> allButtons = driver.findElements(
                         AppiumBy.className("XCUIElementTypeButton")
                 );
-                System.err.println(
-                        "Found " + allButtons.size() + " buttons on screen"
-                );
+                System.err.println("Found " + allButtons.size() + " buttons on screen");
                 for (WebElement button : allButtons) {
-                    // Avoid querying unsupported attribute names like "accessibility-id".
                     // Use label and name which are supported by WDA.
                     String label = "";
                     String name = "";
                     try { label = button.getAttribute("label"); } catch (Exception ex) { /* ignore */ }
                     try { name = button.getAttribute("name"); } catch (Exception ex) { /* ignore */ }
-                    System.err.println(
-                            "  - Button: " + label + " | name: " + name
-                    );
+                    System.err.println("  - Button: " + label + " | name: " + name);
                 }
             } catch (Exception inspectError) {
-                System.err.println(
-                        "Could not inspect elements: " + inspectError.getMessage()
-                );
+                System.err.println("Could not inspect elements: " + inspectError.getMessage());
             }
 
             throw e;
         }
     }
 
+    private void safeClick(By locator) {
+        Exception lastEx = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                WebElement el = waitForClickable(locator);
+                el.click();
+                return;
+            } catch (Exception e) {
+                lastEx = e;
+                System.err.println("Click attempt " + attempt + " failed for " + locator + ": " + e.getMessage());
+
+                // Try to hide the keyboard, give it a short pause, then retry.
+                try {
+                    driver.hideKeyboard();
+                } catch (Exception hideEx) {
+                    // ignore if no keyboard present or hide fails
+                }
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+
+                // On last attempt, fall back to coordinate tap
+                if (attempt == 3) {
+                    try {
+                        WebElement el = driver.findElement(locator);
+                        int centerX = el.getLocation().getX() + el.getSize().getWidth() / 2;
+                        int centerY = el.getLocation().getY() + el.getSize().getHeight() / 2;
+                        Map<String, Object> args = new HashMap<>();
+                        args.put("x", centerX);
+                        args.put("y", centerY);
+                        driver.executeScript("mobile: tap", args);
+                        return;
+                    } catch (Exception fallbackEx) {
+                        System.err.println("fallback tap failed: " + fallbackEx.getMessage());
+                    }
+                }
+            }
+        }
+        throw new RuntimeException("Unable to click element: " + locator, lastEx);
+    }
+
     public void enterEmail(String email) {
 
-        System.out.println(
-                "Waiting for login email field..."
-        );
+        System.out.println("Waiting for login email field...");
 
-        WebElement emailField =
-                waitForVisible(emailFieldLocator);
+        WebElement emailField = waitForVisible(emailFieldLocator);
 
         emailField.clear();
         emailField.sendKeys(email);
 
-        System.out.println(
-                "Email entered successfully."
-        );
+        System.out.println("Email entered successfully.");
     }
 
     public void enterPassword(String password) {
 
-        System.out.println(
-                "Waiting for login password field..."
-        );
+        System.out.println("Waiting for login password field...");
 
-        WebElement passwordField =
-                waitForVisible(passwordFieldLocator);
+        WebElement passwordField = waitForVisible(passwordFieldLocator);
 
         passwordField.clear();
         passwordField.sendKeys(password);
 
-        System.out.println(
-                "Password entered successfully."
-        );
+        // try to dismiss keyboard to reveal possible controls behind it
+        try {
+            driver.hideKeyboard();
+        } catch (Exception ignored) {
+        }
+
+        System.out.println("Password entered successfully.");
     }
 
     public void tapLogin() {
 
-        System.out.println(
-                "Waiting for login button..."
-        );
+        System.out.println("Waiting for login button...");
 
-        WebElement loginButton =
-                waitForClickable(loginButtonLocator);
+        safeClick(loginButtonLocator);
 
-        loginButton.click();
-
-        System.out.println(
-                "Login button clicked successfully."
-        );
+        System.out.println("Login button clicked successfully.");
 
         // Wait for navigation to complete before returning
         waitForHomeScreenAppearance();
@@ -184,9 +215,7 @@ public class LoginPage {
 
     private void waitForHomeScreenAppearance() {
 
-        System.out.println(
-                "Waiting for home screen to appear..."
-        );
+        System.out.println("Waiting for home screen to appear...");
 
         try {
             wait.until(
@@ -194,13 +223,9 @@ public class LoginPage {
                             homeScreenLocator
                     )
             );
-            System.out.println(
-                    "Home screen appeared successfully."
-            );
+            System.out.println("Home screen appeared successfully.");
         } catch (TimeoutException e) {
-            System.err.println(
-                    "Home screen did not appear within timeout."
-            );
+            System.err.println("Home screen did not appear within timeout.");
             // Don't rethrow here; let the test assertion handle it
         }
     }
@@ -218,20 +243,13 @@ public class LoginPage {
 
             try {
 
-                System.out.println(
-                        "Login attempt: "
-                                + attempt
-                                + "/"
-                                + MAX_LOGIN_RETRIES
-                );
+                System.out.println("Login attempt: " + attempt + "/" + MAX_LOGIN_RETRIES);
 
                 enterEmail(email);
                 enterPassword(password);
                 tapLogin();
 
-                System.out.println(
-                        "Login action completed."
-                );
+                System.out.println("Login action completed.");
 
                 return;
 
@@ -241,18 +259,11 @@ public class LoginPage {
                     StaleElementReferenceException exception
             ) {
 
-                System.err.println(
-                        "Login attempt "
-                                + attempt
-                                + " failed: "
-                                + exception.getMessage()
-                );
+                System.err.println("Login attempt " + attempt + " failed: " + exception.getMessage());
 
                 if (attempt == MAX_LOGIN_RETRIES) {
 
-                    System.err.println(
-                            "Maximum login retries reached."
-                    );
+                    System.err.println("Maximum login retries reached.");
 
                     throw exception;
                 }
@@ -281,9 +292,7 @@ public class LoginPage {
                     System.out.println("Email field cleared.");
                 }
             } catch (Exception e) {
-                System.err.println(
-                        "Could not clear email field: " + e.getMessage()
-                );
+                System.err.println("Could not clear email field: " + e.getMessage());
             }
 
             // Try to clear password field
@@ -296,15 +305,11 @@ public class LoginPage {
                     System.out.println("Password field cleared.");
                 }
             } catch (Exception e) {
-                System.err.println(
-                        "Could not clear password field: " + e.getMessage()
-                );
+                System.err.println("Could not clear password field: " + e.getMessage());
             }
 
         } catch (Exception e) {
-            System.err.println(
-                    "Error resetting login fields: " + e.getMessage()
-            );
+            System.err.println("Error resetting login fields: " + e.getMessage());
         }
     }
 
@@ -329,18 +334,14 @@ public class LoginPage {
 
     public String getErrorMessage() {
 
-        System.out.println(
-                "Waiting for login error message..."
-        );
+        System.out.println("Waiting for login error message...");
 
         WebElement errorMessage =
                 waitForVisible(loginErrorLocator);
 
         String message = errorMessage.getText();
 
-        System.out.println(
-                "Login error message: " + message
-        );
+        System.out.println("Login error message: " + message);
 
         return message;
     }
@@ -356,9 +357,7 @@ public class LoginPage {
 
         } catch (TimeoutException exception) {
 
-            System.err.println(
-                    "Login button was not found."
-            );
+            System.err.println("Login button was not found.");
 
             return false;
         }
@@ -386,46 +385,26 @@ public class LoginPage {
 
         } catch (TimeoutException exception) {
 
-            System.err.println(
-                    "Home screen was not visible within timeout."
-            );
+            System.err.println("Home screen was not visible within timeout.");
             return false;
         }
     }
 
     public void toggleRememberMe() {
 
-        System.out.println(
-                "Waiting for Remember Me toggle..."
-        );
+        System.out.println("Waiting for Remember Me toggle...");
 
-        WebElement rememberMeToggle =
-                waitForClickable(
-                        rememberMeToggleLocator
-                );
+        safeClick(rememberMeToggleLocator);
 
-        rememberMeToggle.click();
-
-        System.out.println(
-                "Remember Me toggle clicked."
-        );
+        System.out.println("Remember Me toggle clicked.");
     }
 
     public void togglePasswordVisibility() {
 
-        System.out.println(
-                "Waiting for password visibility button..."
-        );
+        System.out.println("Waiting for password visibility button...");
 
-        WebElement showPasswordButton =
-                waitForClickable(
-                        showPasswordButtonLocator
-                );
+        safeClick(showPasswordButtonLocator);
 
-        showPasswordButton.click();
-
-        System.out.println(
-                "Password visibility button clicked."
-        );
+        System.out.println("Password visibility button clicked.");
     }
 }
