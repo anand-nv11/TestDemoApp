@@ -56,6 +56,7 @@ struct LoginScreen: View {
     var body: some View {
         if isLoggedIn {
             ContentView()
+                .accessibilityIdentifier("homeScreen")
         } else {
             NavigationStack {
                 ScrollView {
@@ -70,6 +71,7 @@ struct LoginScreen: View {
                 .background(Color(.systemGroupedBackground))
                 .navigationTitle("Login")
                 .navigationBarTitleDisplayMode(.inline)
+                .accessibilityIdentifier("loginScreen")
             }
         }
     }
@@ -139,6 +141,7 @@ struct LoginScreen: View {
                             .frame(width: 28, height: 28)
                     }
                     .buttonStyle(.borderless)
+                    .accessibilityIdentifier("showPasswordButton")
                     .accessibilityLabel(showPassword ? "Hide password" : "Show password")
                 }
                 .padding(8)
@@ -156,7 +159,7 @@ struct LoginScreen: View {
             }
 
             Toggle("Remember me", isOn: $rememberMe)
-                .accessibilityIdentifier("loginRememberMeToggle")
+                .accessibilityIdentifier("rememberMeToggle")
 
             Button("Login") {
                 login()
