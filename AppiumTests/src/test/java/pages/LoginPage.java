@@ -83,12 +83,17 @@ public class LoginPage {
     private WebElement waitForClickable(By locator) {
 
         try {
-            // Try to get clickable element directly
-            return wait.until(
-                    ExpectedConditions.elementToBeClickable(
-                            locator
-                    )
-            );
+            // Avoid ExpectedConditions.elementToBeClickable because it may call
+            // attributes unsupported by WDA (e.g. "accessibility-id"). Use a
+            // custom wait that checks presence, visibility and enabled state.
+            return wait.until(d -> {
+                try {
+                    WebElement el = d.findElement(locator);
+                    return (el.isDisplayed() && el.isEnabled()) ? el : null;
+                } catch (NoSuchElementException ex) {
+                    return null;
+                }
+            });
         } catch (TimeoutException e) {
             // Log the failure with element inspection
             System.err.println(
@@ -104,9 +109,14 @@ public class LoginPage {
                         "Found " + allButtons.size() + " buttons on screen"
                 );
                 for (WebElement button : allButtons) {
+                    // Avoid querying unsupported attribute names like "accessibility-id".
+                    // Use label and name which are supported by WDA.
+                    String label = "";
+                    String name = "";
+                    try { label = button.getAttribute("label"); } catch (Exception ex) { /* ignore */ }
+                    try { name = button.getAttribute("name"); } catch (Exception ex) { /* ignore */ }
                     System.err.println(
-                            "  - Button: " + button.getAttribute("label")
-                                    + " | ID: " + button.getAttribute("accessibility-id")
+                            "  - Button: " + label + " | name: " + name
                     );
                 }
             } catch (Exception inspectError) {
