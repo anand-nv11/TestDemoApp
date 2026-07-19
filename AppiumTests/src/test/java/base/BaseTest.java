@@ -3,10 +3,9 @@ package base;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.ios.options.XCUITestOptions;
 import io.qameta.allure.Attachment;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.openqa.selenium.OutputType;
-import org.testng.ITestResult;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
 import utils.ScreenshotUtil;
 
 import java.io.File;
@@ -18,7 +17,7 @@ public class BaseTest {
 
     protected IOSDriver driver;
 
-    @BeforeMethod(alwaysRun = true)
+    @BeforeEach
     public void setUp() throws Exception {
 
         String serverUrl = System.getProperty(
@@ -28,14 +27,14 @@ public class BaseTest {
 
         String bundleId = System.getProperty(
                 "bundleId",
-                "test.com.TodoApp"
+                "test.com.SwiftUIDemoAllComponents"
         );
 
         String udid = System.getProperty("udid");
 
         String deviceName = System.getProperty(
                 "deviceName",
-                "iPhone 17 Pro"
+                "iPhone 17"
         );
 
         String platformVersion = System.getProperty(
@@ -82,9 +81,12 @@ public class BaseTest {
     }
 
     /**
-     * Used by TestListener
+     * Used by tests to get the driver instance
      */
     public IOSDriver getDriver() {
+        if (driver == null) {
+            throw new RuntimeException("Driver not initialized. setUp() may not have been called.");
+        }
         return driver;
     }
 
@@ -98,26 +100,16 @@ public class BaseTest {
         return driver.getScreenshotAs(OutputType.BYTES);
     }
 
-    @AfterMethod(alwaysRun = true)
-    public void tearDown(ITestResult result) {
+    @AfterEach
+    public void tearDown() {
 
         try {
 
-            if (driver != null && !result.isSuccess()) {
-
-                File screenshot =
-                        driver.getScreenshotAs(OutputType.FILE);
-
-                ScreenshotUtil.saveScreenshot(
-                        screenshot,
-                        result.getName()
-                );
-
+            if (driver != null) {
                 attachScreenshot();
 
                 System.out.println(
-                        "Screenshot captured for : "
-                                + result.getName()
+                        "Screenshot captured for test"
                 );
             }
 
