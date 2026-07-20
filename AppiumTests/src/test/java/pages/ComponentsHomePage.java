@@ -11,12 +11,26 @@ public class ComponentsHomePage {
 
     private final IOSDriver driver;
 
+    // Root tab view accessibility identifier - matches ContentView.swift line 26
+    private static final String ROOT_TAB_VIEW_ID = "RootTabView";
+
     public ComponentsHomePage(IOSDriver driver) {
         this.driver = driver;
     }
 
+    /**
+     * Check if the app is loaded by verifying the root tab view is present
+     */
     public boolean isAppLoaded() {
-        return driver != null && driver.getPageSource() != null && !driver.getPageSource().isEmpty();
+        try {
+            List<WebElement> rootElements = driver.findElements(
+                    AppiumBy.accessibilityId(ROOT_TAB_VIEW_ID)
+            );
+            return !rootElements.isEmpty();
+        } catch (Exception e) {
+            System.err.println("Error checking if app is loaded: " + e.getMessage());
+            return false;
+        }
     }
 
     public String pageSource() {
