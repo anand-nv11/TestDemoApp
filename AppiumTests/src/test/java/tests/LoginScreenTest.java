@@ -1,72 +1,103 @@
 package tests;
 
 import base.BaseTest;
-import io.appium.java_client.ios.IOSDriver;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 import pages.LoginPage;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+@Epic("iOS Automation")
+@Feature("Login")
 public class LoginScreenTest extends BaseTest {
 
-    @Test
-    @DisplayName("Test successful login")
+    private static final String VALID_EMAIL = "demo@example.com";
+    private static final String VALID_PASSWORD = "DemoPass1!";
+
+    @Test(description = "Verify successful login")
+    @Story("Successful Login")
+    @Severity(SeverityLevel.CRITICAL)
     public void testSuccessfulLogin() {
-        IOSDriver driver = getDriver();
         LoginPage loginPage = new LoginPage(driver);
-        
-        loginPage.login("test@example.com", "password123");
-        
-        assertTrue(loginPage.isHomeScreenVisible(), "Home screen should be visible after login");
+
+        loginPage.login(
+                VALID_EMAIL,
+                VALID_PASSWORD
+        );
+
+        Assert.assertTrue(
+                loginPage.isHomeScreenVisible(),
+                "Home screen should be visible after login"
+        );
     }
 
-    @Test
-    @DisplayName("Test login with invalid credentials")
+    @Test(description = "Verify invalid credentials keep user on login screen")
+    @Story("Invalid Login")
     public void testLoginWithInvalidCredentials() {
-        IOSDriver driver = getDriver();
         LoginPage loginPage = new LoginPage(driver);
-        
-        loginPage.enterEmail("test@example.com");
-        loginPage.enterPassword("wrongpassword");
-        loginPage.tapLogin();
-        
-        assertTrue(loginPage.isLoginScreenVisible(), "Should remain on login screen with invalid credentials");
+
+        loginPage.enterEmail("invalid-email");
+        loginPage.enterPassword("123");
+
+        Assert.assertFalse(
+                loginPage.isLoginButtonEnabled(),
+                "Login button should remain disabled for invalid credentials"
+        );
+
+        Assert.assertTrue(
+                loginPage.isLoginScreenVisible(),
+                "User should remain on the login screen"
+        );
     }
 
-    @Test
-    @DisplayName("Test login screen is visible")
+    @Test(description = "Verify login screen is visible")
+    @Story("Login Screen")
     public void testLoginScreenVisible() {
-        IOSDriver driver = getDriver();
         LoginPage loginPage = new LoginPage(driver);
-        
-        assertTrue(loginPage.isLoginScreenVisible(), "Login screen should be visible");
+
+        Assert.assertTrue(
+                loginPage.isLoginScreenVisible(),
+                "Login screen should be visible"
+        );
     }
 
-    @Test
-    @DisplayName("Test login button is enabled")
-    public void testLoginButtonEnabled() {
-        IOSDriver driver = getDriver();
+    @Test(description = "Verify login button is initially disabled")
+    @Story("Validation")
+    public void testLoginButtonInitiallyDisabled() {
         LoginPage loginPage = new LoginPage(driver);
-        
-        assertFalse(loginPage.isLoginButtonEnabled(), "Login button should be initially disabled");
+
+        Assert.assertFalse(
+                loginPage.isLoginButtonEnabled(),
+                "Login button should be initially disabled"
+        );
     }
 
-    @Test
-    @DisplayName("Test remember me toggle")
+    @Test(description = "Verify Remember Me toggle")
+    @Story("Remember Me")
     public void testRememberMeToggle() {
-        IOSDriver driver = getDriver();
         LoginPage loginPage = new LoginPage(driver);
-        
-        assertDoesNotThrow(() -> loginPage.toggleRememberMe(), "Should be able to toggle Remember Me");
+
+        loginPage.toggleRememberMe();
+
+        Assert.assertTrue(
+                loginPage.isLoginScreenVisible(),
+                "Login screen should remain visible after toggling Remember Me"
+        );
     }
 
-    @Test
-    @DisplayName("Test password visibility toggle")
+    @Test(description = "Verify password visibility toggle")
+    @Story("Password Visibility")
     public void testPasswordVisibilityToggle() {
-        IOSDriver driver = getDriver();
         LoginPage loginPage = new LoginPage(driver);
-        
-        assertDoesNotThrow(() -> loginPage.togglePasswordVisibility(), "Should be able to toggle password visibility");
+
+        loginPage.togglePasswordVisibility();
+
+        Assert.assertTrue(
+                loginPage.isLoginScreenVisible(),
+                "Login screen should remain visible after toggling password visibility"
+        );
     }
 }

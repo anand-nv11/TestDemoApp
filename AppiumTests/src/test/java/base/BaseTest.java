@@ -3,9 +3,10 @@ package base;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.ios.options.XCUITestOptions;
 import io.qameta.allure.Attachment;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
 import org.openqa.selenium.OutputType;
+import org.testng.ITestResult;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import utils.ScreenshotUtil;
 
 import java.io.File;
@@ -17,7 +18,7 @@ public class BaseTest {
 
     protected IOSDriver driver;
 
-    @BeforeEach
+    @BeforeMethod(alwaysRun = true)
     public void setUp() throws Exception {
 
         String serverUrl = System.getProperty(
@@ -44,7 +45,8 @@ public class BaseTest {
 
         if (udid == null || udid.isBlank()) {
             throw new IllegalArgumentException(
-                    "Simulator UDID is missing. Pass -Dudid=YOUR_SIMULATOR_UDID"
+                    "Simulator UDID is missing. " +
+                            "Pass -Dudid=YOUR_SIMULATOR_UDID"
             );
         }
 
@@ -68,68 +70,86 @@ public class BaseTest {
         System.out.println("UDID          : " + udid);
         System.out.println("==================================");
 
-        driver = new IOSDriver(appiumUrl, options);
+        driver = new IOSDriver(
+                appiumUrl,
+                options
+        );
 
         driver.manage()
                 .timeouts()
-                .implicitlyWait(Duration.ofSeconds(10));
+                .implicitlyWait(Duration.ofSeconds(3));
 
         System.out.println(
-                "Appium Session Created : "
+                "Appium Session Created: "
                         + driver.getSessionId()
         );
     }
 
     /**
-     * Used by tests to get the driver instance
+     * Used by tests and TestListener.
      */
     public IOSDriver getDriver() {
-        if (driver == null) {
-            throw new RuntimeException("Driver not initialized. setUp() may not have been called.");
-        }
         return driver;
     }
 
-    @Attachment(value = "Failure Screenshot", type = "image/png")
+    @Attachment(
+            value = "Failure Screenshot",
+            type = "image/png"
+    )
     public byte[] attachScreenshot() {
 
         if (driver == null) {
             return new byte[0];
         }
 
-        return driver.getScreenshotAs(OutputType.BYTES);
+        return driver.getScreenshotAs(
+                OutputType.BYTES
+        );
     }
 
-    @AfterEach
-    public void tearDown() {
+    @AfterMethod(alwaysRun = true)
+    public void tearDown(ITestResult result) {
 
         try {
+            if (driver != null && !result.isSuccess()) {
 
-            if (driver != null) {
+                File screenshot = driver.getScreenshotAs(
+                        OutputType.FILE
+                );
+
+                ScreenshotUtil.saveScreenshot(
+                        screenshot,
+                        result.getName()
+                );
+
                 attachScreenshot();
 
                 System.out.println(
-                        "Screenshot captured for test"
+                        "Failure screenshot captured for: "
+                                + result.getName()
                 );
             }
-
-        } catch (Exception e) {
-
-            System.out.println(
-                    "Screenshot capture failed : "
-                            + e.getMessage()
+        } catch (Exception error) {
+            System.err.println(
+                    "Screenshot capture failed: "
+                            + error.getMessage()
             );
-
         } finally {
-
             if (driver != null) {
-
                 try {
                     driver.quit();
-                } catch (Exception ignored) {
-                }
 
-                driver = null;
+                    System.out.println(
+                            "Appium session closed."
+                    );
+                } catch (Exception error) {
+                    System.err.println(
+                            "Unable to close Appium session: "
+                                    + error.getMessage()
+                    );
+                } finally {
+                    driver = null;
+                }
             }
         }
     }
