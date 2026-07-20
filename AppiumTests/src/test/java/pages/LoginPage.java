@@ -41,7 +41,7 @@ public class LoginPage {
             AppiumBy.accessibilityId("loginErrorMessage");
 
     private final By homeScreenLocator =
-            AppiumBy.accessibilityId("homeScreen");
+            AppiumBy.accessibilityId("RootTabView");
 
     private final By rememberMeToggleLocator =
             AppiumBy.accessibilityId("rememberMeToggle");
@@ -215,7 +215,7 @@ public class LoginPage {
 
     private void waitForHomeScreenAppearance() {
 
-        System.out.println("Waiting for home screen to appear...");
+        System.out.println("Waiting for home screen to appear (RootTabView)...");
 
         try {
             wait.until(
