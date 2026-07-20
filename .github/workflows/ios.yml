@@ -158,6 +158,19 @@ jobs:
           xcrun simctl get_app_container "$DEVICE_ID" "$BUNDLE_ID"
           xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
 
+      - name: Run Native XCTest Suite
+        shell: bash
+        run: |
+          set -o pipefail
+
+          xcodebuild test \
+            -scheme "SwiftUIDemoAllComponents" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -derivedDataPath "$GITHUB_WORKSPACE/build-xctest" \
+            -resultBundlePath "$GITHUB_WORKSPACE/SwiftUIDemoAllComponentsTests.xcresult" | \
+            tee "$GITHUB_WORKSPACE/xctest.log"
+
       - name: Create Report Folders
         shell: bash
         run: |
@@ -323,6 +336,22 @@ jobs:
         with:
           name: appium-log
           path: appium.log
+          if-no-files-found: warn
+
+      - name: Upload XCTest Result Bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xctest-result-bundle
+          path: SwiftUIDemoAllComponentsTests.xcresult
+          if-no-files-found: warn
+
+      - name: Upload XCTest Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xctest-log
+          path: xctest.log
           if-no-files-found: warn
 
       - name: Upload Xcode Build Log
