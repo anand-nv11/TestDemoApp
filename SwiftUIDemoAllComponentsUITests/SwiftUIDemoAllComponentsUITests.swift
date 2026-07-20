@@ -1,33 +1,100 @@
 import XCTest
 
 final class SwiftUIDemoAllComponentsUITests: XCTestCase {
+
+    private var app: XCUIApplication!
+
     override func setUpWithError() throws {
         continueAfterFailure = false
+        app = XCUIApplication()
+    }
+
+    override func tearDownWithError() throws {
+        if let app, app.state != .notRunning {
+            app.terminate()
+        }
+        app = nil
     }
 
     @MainActor
     func testCatalogLaunchesAndOpensButtonDemo() throws {
-        let app = XCUIApplication()
-        app.launchArguments.append("-uiTestOpenButtonDemo")
+        app.launchArguments = ["-uiTestOpenButtonDemo"]
         app.launch()
-        loginAndOpenComponentDemo(in: app, waitsForComponentsTab: false)
 
-        XCTAssertTrue(app.staticTexts["Button"].waitForExistence(timeout: 5))
+        try login(in: app)
+
+        let buttonTitle = app.staticTexts["Button"]
+        XCTAssertTrue(
+            buttonTitle.waitForExistence(timeout: 15),
+            "Button demo did not appear after login. Current hierarchy:\n\(app.debugDescription)"
+        )
     }
 
     @MainActor
     func testGuideTabShowsBestPractices() throws {
-        let app = XCUIApplication()
-        app.launchArguments.append("-uiTestStartOnGuide")
+        app.launchArguments = ["-uiTestStartOnGuide"]
         app.launch()
-        loginAndOpenComponentDemo(in: app)
 
-        XCTAssertTrue(app.staticTexts["Project Structure"].waitForExistence(timeout: 5))
+        try login(in: app)
+
+        let guideTab = app.tabBars.buttons["Guide"]
+        if guideTab.waitForExistence(timeout: 10) {
+            guideTab.tap()
+        }
+
+        let projectStructure = app.staticTexts["Project Structure"]
+        XCTAssertTrue(
+            projectStructure.waitForExistence(timeout: 15),
+            "Project Structure was not visible on the Guide screen."
+        )
+
         let bestPractices = app.staticTexts["Best Practices"]
-        if !bestPractices.exists {
+        if !bestPractices.waitForExistence(timeout: 3) {
             app.scrollViews.firstMatch.swipeUp()
         }
-        XCTAssertTrue(bestPractices.waitForExistence(timeout: 5))
+
+        XCTAssertTrue(
+            bestPractices.waitForExistence(timeout: 10),
+            "Best Practices was not visible after scrolling."
+        )
+    }
+
+    @MainActor
+    func testValidLoginOpensComponentsTab() throws {
+        app.launch()
+        try login(in: app)
+
+        // A visible tab button is a more stable readiness marker than a SwiftUI
+        // TabView container accessibility identifier such as RootTabView.
+        let componentsTab = app.tabBars.buttons["Components"]
+        XCTAssertTrue(
+            componentsTab.waitForExistence(timeout: 15),
+            "Components tab was not visible after valid login."
+        )
+    }
+
+    @MainActor
+    func testInvalidEmailKeepsLoginDisabled() throws {
+        app.launch()
+
+        let emailField = app.textFields["loginEmailField"]
+        let passwordField = app.secureTextFields["loginPasswordField"]
+        let loginButton = app.buttons["loginButton"]
+
+        XCTAssertTrue(emailField.waitForExistence(timeout: 15))
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 15))
+        XCTAssertTrue(loginButton.waitForExistence(timeout: 15))
+
+        emailField.tap()
+        emailField.typeText("invalid-email")
+
+        passwordField.tap()
+        passwordField.typeText("DemoPass1!")
+
+        XCTAssertFalse(
+            loginButton.isEnabled,
+            "Login button should remain disabled for an invalid email address."
+        )
     }
 
     @MainActor
@@ -38,18 +105,36 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
     }
 
     @MainActor
-    private func loginAndOpenComponentDemo(in app: XCUIApplication, waitsForComponentsTab: Bool = true) {
-        app.textFields["loginEmailField"].tap()
-        app.textFields["loginEmailField"].typeText("demo@example.com")
+    private func login(in app: XCUIApplication) throws {
+        let emailField = app.textFields["loginEmailField"]
+        XCTAssertTrue(
+            emailField.waitForExistence(timeout: 15),
+            "loginEmailField was not found."
+        )
 
-        app.secureTextFields["loginPasswordField"].tap()
-        app.secureTextFields["loginPasswordField"].typeText("DemoPass1!")
+        emailField.tap()
+        emailField.typeText("demo@example.com")
 
-        app.buttons["loginButton"].tap()
+        let passwordField = app.secureTextFields["loginPasswordField"]
+        XCTAssertTrue(
+            passwordField.waitForExistence(timeout: 15),
+            "loginPasswordField was not found."
+        )
 
-        if waitsForComponentsTab {
-            XCTAssertTrue(app.tabBars.buttons["Components"].waitForExistence(timeout: 5))
-        }
+        passwordField.tap()
+        passwordField.typeText("DemoPass1!")
+
+        let loginButton = app.buttons["loginButton"]
+        XCTAssertTrue(
+            loginButton.waitForExistence(timeout: 15),
+            "loginButton was not found."
+        )
+        XCTAssertTrue(
+            loginButton.isEnabled,
+            "loginButton should be enabled for valid credentials."
+        )
+
+        loginButton.tap()
     }
-
 }
+

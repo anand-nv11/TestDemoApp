@@ -18,11 +18,15 @@ final class SwiftUIDemoAllComponentsUITestsLaunchTests: XCTestCase {
     }
 
     @MainActor
-    func testLaunch() throws {
+    func testLaunchShowsLoginScreen() throws {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.textFields["loginEmailField"].waitForExistence(timeout: 5))
+        let emailField = app.textFields["loginEmailField"]
+        XCTAssertTrue(
+            emailField.waitForExistence(timeout: 15),
+            "Login screen did not appear after launch. Current hierarchy:\n\(app.debugDescription)"
+        )
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"

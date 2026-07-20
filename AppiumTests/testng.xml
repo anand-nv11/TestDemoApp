@@ -1,19 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="iOS SwiftUIDemoAllComponents Appium Automation Suite">
+
+<suite name="iOS SwiftUIDemoAllComponents Appium Automation Suite"
+       verbose="2"
+       parallel="none">
+
     <listeners>
-        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
         <listener class-name="listeners.TestListener"/>
     </listeners>
 
     <test name="SwiftUI Component Tests">
         <classes>
-            <class name="tests.IOSAppiumTest"/>
             <class name="tests.AppLaunchTest"/>
+            <class name="tests.LoginScreenTest"/>
+            <class name="tests.LoginFailureDemoTest"/>
             <class name="tests.BasicComponentTest"/>
             <class name="tests.ComponentNavigationTest"/>
             <class name="tests.ComponentSearchTest"/>
-            <class name="tests.LoginFailureDemoTest"/>
-            <class name="tests.LoginScreenTest"/>
+            <class name="tests.IOSAppiumTest"/>
         </classes>
     </test>
 </suite>
