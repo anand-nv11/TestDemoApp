@@ -22,6 +22,8 @@ public class AppLaunchTest extends BaseTest {
                 "Application did not finish loading."
         );
 
+        homePage.waitForAccessibilityId("homeScreen",30);
+
         System.out.println(driver.getPageSource());
 
         System.out.println("App launched successfully.");

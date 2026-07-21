@@ -14,7 +14,7 @@ public class ComponentNavigationTest extends BaseTest {
     @DataProvider(name = "components")
     public Object[][] components() {
         return new Object[][]{
-                {"Buttons"},
+                {"Button"},
                 {"Text"},
                 {"TextField"},
                 {"SecureField"},
@@ -30,7 +30,7 @@ public class ComponentNavigationTest extends BaseTest {
                 {"Sheet"},
                 {"Navigation"},
                 {"Map"},
-                {"Scrolling"},
+                {"ScrollView"},
                 {"Images"},
                 {"Animation"},
                 {"Gesture"},
@@ -61,7 +61,7 @@ public class ComponentNavigationTest extends BaseTest {
     public void tapScrollingComponentIfAvailable() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
-        boolean tapped = homePage.scrollAndTapText("Scrolling", 3);
+        boolean tapped = homePage.scrollAndTapText("ScrollView", 3);
 
         if (!tapped) {
             System.out.println("Scrolling component not found, app is still stable.");

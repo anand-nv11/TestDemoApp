@@ -16,6 +16,8 @@ public class BasicComponentTest extends BaseTest {
     public void verifyBasicElementsExist() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
+        homePage.waitForAccessibilityId("ComponentCatalogList",30);
+
         int buttons = homePage.countButtons();
         int cells = homePage.countCells();
 

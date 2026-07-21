@@ -62,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          npm install --global appium@latest
+          npm install --global appium@3.5.2
           appium --version
           appium driver install xcuitest
           appium driver list --installed
@@ -108,9 +108,32 @@ jobs:
           echo "DEVICE_NAME=$DEVICE_NAME" >> "$GITHUB_ENV"
           echo "DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
 
-          xcrun simctl shutdown "$DEVICE_ID" 2>/dev/null || true
-          xcrun simctl boot "$DEVICE_ID"
+          echo "Selected simulator: $DEVICE_NAME ($DEVICE_ID)"
+
+          killall Simulator 2>/dev/null || true
+          xcrun simctl shutdown all || true
+          xcrun simctl erase "$DEVICE_ID" || true
+
+          xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
+
+          echo "Waiting for SpringBoard..."
+          for attempt in $(seq 1 60); do
+            if xcrun simctl spawn "$DEVICE_ID" launchctl print system/com.apple.SpringBoard \
+              >/dev/null 2>&1; then
+              echo "SpringBoard is ready."
+              break
+            fi
+
+            if [ "$attempt" -eq 60 ]; then
+              echo "ERROR: SpringBoard did not become ready."
+              xcrun simctl diagnose || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
           xcrun simctl list devices | grep "$DEVICE_ID"
 
       - name: Build iOS App
@@ -154,9 +177,18 @@ jobs:
         run: |
           set -euo pipefail
 
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl terminate "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || true
+          xcrun simctl uninstall "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || true
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+
+          echo "Installed app container:"
           xcrun simctl get_app_container "$DEVICE_ID" "$BUNDLE_ID"
+
+          echo "Launching app once for validation..."
           xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
+          sleep 8
+          xcrun simctl terminate "$DEVICE_ID" "$BUNDLE_ID" || true
 
       - name: Revalidate Simulator Before XCTest
         shell: bash
@@ -364,27 +396,38 @@ jobs:
         run: |
           set -euo pipefail
 
+          pkill -f "appium.*4723" 2>/dev/null || true
+          pkill -f "xcodebuild.*WebDriverAgentRunner" 2>/dev/null || true
+          sleep 2
+
           nohup appium \
             --address 127.0.0.1 \
             --port 4723 \
+            --base-path / \
             --log-level debug \
             --log-timestamp \
             > "$GITHUB_WORKSPACE/appium.log" 2>&1 &
 
           echo "APPIUM_PID=$!" >> "$GITHUB_ENV"
+
           SERVER_READY=false
 
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 60); do
             if curl --silent --fail "http://127.0.0.1:4723/status" \
               > "$GITHUB_WORKSPACE/appium-status.json"; then
-              SERVER_READY=true
-              cat "$GITHUB_WORKSPACE/appium-status.json"
-              break
+              if grep -q '"ready":true' "$GITHUB_WORKSPACE/appium-status.json"; then
+                SERVER_READY=true
+                cat "$GITHUB_WORKSPACE/appium-status.json"
+                break
+              fi
             fi
+
+            echo "Waiting for Appium server: $attempt/60"
             sleep 2
           done
 
           if [ "$SERVER_READY" != "true" ]; then
+            echo "ERROR: Appium server did not become ready."
             cat "$GITHUB_WORKSPACE/appium.log" || true
             exit 1
           fi
@@ -435,6 +478,14 @@ jobs:
             -Dudid="$DEVICE_ID" \
             -DdeviceName="$DEVICE_NAME" \
             -DplatformVersion="$PLATFORM_VERSION" \
+            -DnoReset=false \
+            -DuseNewWDA=false \
+            -DclearSystemFiles=true \
+            -DshowXcodeLog=true \
+            -DwdaLaunchTimeout=240000 \
+            -DwdaConnectionTimeout=240000 \
+            -DwdaStartupRetries=4 \
+            -DwdaStartupRetryInterval=20000 \
             -DrunFailureDemo="$RUN_FAILURE_DEMO" \
             -Dsurefire.useFile=false
 
@@ -456,6 +507,35 @@ jobs:
           fi
 
           exit "$TEST_EXIT_CODE"
+
+      - name: Collect Simulator Diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          echo "===== SIMULATOR STATE ====="
+          xcrun simctl list devices | grep "${DEVICE_ID:-UNKNOWN}" || true
+
+          echo "===== INSTALLED APP ====="
+          xcrun simctl get_app_container "${DEVICE_ID:-booted}" "$BUNDLE_ID" || true
+
+          echo "===== WDA STATUS ====="
+          curl --silent --show-error http://127.0.0.1:8100/status || true
+
+          echo "===== APPIUM STATUS ====="
+          curl --silent --show-error http://127.0.0.1:4723/status || true
+
+          echo "===== LAST APPIUM LOG LINES ====="
+          tail -n 300 "$GITHUB_WORKSPACE/appium.log" || true
+
+      - name: Stop Appium and WDA
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${APPIUM_PID:-}" ]; then
+            kill "$APPIUM_PID" 2>/dev/null || true
+          fi
+
+          pkill -f "xcodebuild.*WebDriverAgentRunner" 2>/dev/null || true
 
       - name: Stop Simulator Video Recording
         if: always()

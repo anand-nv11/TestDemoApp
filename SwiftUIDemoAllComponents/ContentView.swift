@@ -16,11 +16,17 @@ struct ContentView: View {
         } else {
             TabView(selection: $selectedTab) {
                 ComponentCatalogScreen()
-                    .tabItem { Label("Components", systemImage: "square.grid.2x2") }
+                    .tabItem {
+                        Label("Components", systemImage: "square.grid.2x2")
+                            .accessibilityIdentifier("ComponentsTab")
+                    }
                     .tag(RootTab.components)
 
                 SwiftUIGuideScreen()
-                    .tabItem { Label("Guide", systemImage: "book") }
+                    .tabItem {
+                        Label("Guide", systemImage: "book")
+                            .accessibilityIdentifier("GuideTab")
+                    }
                     .tag(RootTab.guide)
             }
             .accessibilityIdentifier("RootTabView")
@@ -46,7 +52,9 @@ struct ComponentCatalogScreen: View {
 
     var body: some View {
         NavigationStack {
-            List(filteredComponents) { component in
+            List {
+                Section {
+                    ForEach(filteredComponents) { component in
                 NavigationLink(value: component) {
                     HStack(spacing: 12) {
                         Image(systemName: component.systemImage)
@@ -65,11 +73,18 @@ struct ComponentCatalogScreen: View {
                     }
                     .padding(.vertical, 6)
                 }
-                .accessibilityLabel("Open \(component.title)")
-                .accessibilityIdentifier("ComponentRow_\(component.id.rawValue)")
+                        .accessibilityLabel("Open \(component.title)")
+                        .accessibilityIdentifier("ComponentRow_\(component.id.rawValue)")
+                    }
+                } header: {
+                    Text("SwiftUI Components")
+                        .accessibilityIdentifier("homeScreen")
+                }
             }
+            .accessibilityIdentifier("ComponentCatalogList")
             .navigationTitle("SwiftUI Components")
             .searchable(text: $searchText, prompt: "Search components")
+            .accessibilityIdentifier("ComponentCatalogScreen")
             .navigationDestination(for: ComponentDemo.self) { component in
                 ComponentDetailScreen(component: component)
                     .navigationTitle(component.title)
@@ -131,6 +146,7 @@ struct SwiftUIGuideScreen: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Color(.systemGroupedBackground))
+            .accessibilityIdentifier("GuideScreen")
             .navigationTitle("SwiftUI Guide")
         }
     }
@@ -274,8 +290,10 @@ struct ComponentDetailScreen: View {
             .frame(maxWidth: .infinity)
         }
         .background(Color(.systemGroupedBackground))
+        .accessibilityIdentifier("ComponentDetail_\(component.id.rawValue)")
         .alert("Action completed", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
+                .accessibilityIdentifier("AlertOKButton")
         } message: {
             Text("This is a sample alert for the selected component.")
         }
@@ -294,15 +312,20 @@ struct ComponentDetailScreen: View {
         case .button:
             ShowcaseCard("Button Types") {
                 Button("Default Button") { showAlert = true }
+                    .accessibilityIdentifier("DefaultButton")
                 Button("Prominent Button") { showAlert = true }
+                    .accessibilityIdentifier("ProminentButton")
                     .buttonStyle(.borderedProminent)
                 Button("Bordered Button") { showAlert = true }
+                    .accessibilityIdentifier("BorderedButton")
                     .buttonStyle(.bordered)
                 Button("Destructive Button", role: .destructive) { showAlert = true }
+                    .accessibilityIdentifier("DestructiveButton")
                     .buttonStyle(.bordered)
                 Button { showAlert = true } label: {
                     Label("Icon Button", systemImage: "paperplane.fill")
                 }
+                .accessibilityIdentifier("IconButton")
                 .buttonStyle(.borderedProminent)
             }
 

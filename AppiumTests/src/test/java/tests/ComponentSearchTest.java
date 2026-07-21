@@ -16,7 +16,7 @@ public class ComponentSearchTest extends BaseTest {
     public void searchScrollingIfSearchAvailable() {
         SearchPage searchPage = new SearchPage(driver);
 
-        boolean searchAvailable = searchPage.searchIfSearchFieldExists("Scrolling");
+        boolean searchAvailable = searchPage.searchIfSearchFieldExists("ScrollView");
 
         if (!searchAvailable) {
             System.out.println("Search field not available. Skipping safely.");
@@ -24,7 +24,7 @@ public class ComponentSearchTest extends BaseTest {
             return;
         }
 
-        boolean resultVisible = searchPage.isResultVisible("Scrolling");
+        boolean resultVisible = searchPage.isResultVisible("ScrollView");
 
         Assert.assertTrue(resultVisible, "Search result should contain Scrolling");
     }

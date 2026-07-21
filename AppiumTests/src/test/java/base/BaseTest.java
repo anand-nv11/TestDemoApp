@@ -5,8 +5,9 @@ import io.appium.java_client.ios.options.XCUITestOptions;
 import io.qameta.allure.Attachment;
 import org.openqa.selenium.OutputType;
 import org.testng.ITestResult;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeClass;
 import utils.ScreenshotUtil;
 
 import java.io.File;
@@ -18,7 +19,7 @@ public class BaseTest {
 
     protected IOSDriver driver;
 
-    @BeforeMethod(alwaysRun = true)
+    @BeforeClass(alwaysRun = true)
     public void setUp() throws Exception {
 
         String serverUrl = System.getProperty(
@@ -43,6 +44,38 @@ public class BaseTest {
                 "26.4"
         );
 
+        boolean noReset = Boolean.parseBoolean(
+                System.getProperty("noReset", "false")
+        );
+
+        boolean useNewWDA = Boolean.parseBoolean(
+                System.getProperty("useNewWDA", "false")
+        );
+
+        boolean clearSystemFiles = Boolean.parseBoolean(
+                System.getProperty("clearSystemFiles", "true")
+        );
+
+        boolean showXcodeLog = Boolean.parseBoolean(
+                System.getProperty("showXcodeLog", "true")
+        );
+
+        long wdaLaunchTimeout = Long.parseLong(
+                System.getProperty("wdaLaunchTimeout", "240000")
+        );
+
+        long wdaConnectionTimeout = Long.parseLong(
+                System.getProperty("wdaConnectionTimeout", "240000")
+        );
+
+        int wdaStartupRetries = Integer.parseInt(
+                System.getProperty("wdaStartupRetries", "4")
+        );
+
+        long wdaStartupRetryInterval = Long.parseLong(
+                System.getProperty("wdaStartupRetryInterval", "20000")
+        );
+
         if (udid == null || udid.isBlank()) {
             throw new IllegalArgumentException(
                     "Simulator UDID is missing. " +
@@ -55,10 +88,19 @@ public class BaseTest {
                 .setPlatformVersion(platformVersion)
                 .setUdid(udid)
                 .setBundleId(bundleId)
-                .setNoReset(true)
+                .setNoReset(noReset)
                 .setNewCommandTimeout(Duration.ofSeconds(300))
-                .setWdaLaunchTimeout(Duration.ofSeconds(180))
-                .setWdaConnectionTimeout(Duration.ofSeconds(180));
+                .setWdaLaunchTimeout(Duration.ofMillis(wdaLaunchTimeout))
+                .setWdaConnectionTimeout(Duration.ofMillis(wdaConnectionTimeout));
+
+        options.setCapability("appium:useNewWDA", useNewWDA);
+        options.setCapability("appium:clearSystemFiles", clearSystemFiles);
+        options.setCapability("appium:showXcodeLog", showXcodeLog);
+        options.setCapability("appium:wdaStartupRetries", wdaStartupRetries);
+        options.setCapability(
+                "appium:wdaStartupRetryInterval",
+                wdaStartupRetryInterval
+        );
 
         URL appiumUrl = URI.create(serverUrl).toURL();
 
@@ -68,6 +110,10 @@ public class BaseTest {
         System.out.println("Device Name   : " + deviceName);
         System.out.println("Platform      : " + platformVersion);
         System.out.println("UDID          : " + udid);
+        System.out.println("noReset       : " + noReset);
+        System.out.println("useNewWDA     : " + useNewWDA);
+        System.out.println("WDA retries   : " + wdaStartupRetries);
+        System.out.println("WDA timeout   : " + wdaLaunchTimeout + " ms");
         System.out.println("==================================");
 
         driver = new IOSDriver(
@@ -77,18 +123,18 @@ public class BaseTest {
 
         try {
             driver.activateApp(bundleId);
-        } catch (Exception ignored) {
+        } catch (Exception error) {
+            System.err.println(
+                    "App activation warning: " + error.getMessage()
+            );
         }
-
-        Thread.sleep(3000);
 
         driver.manage()
                 .timeouts()
                 .implicitlyWait(Duration.ofSeconds(0));
 
         System.out.println(
-                "Appium Session Created: "
-                        + driver.getSessionId()
+                "Appium Session Created: " + driver.getSessionId()
         );
     }
 
@@ -104,60 +150,54 @@ public class BaseTest {
             type = "image/png"
     )
     public byte[] attachScreenshot() {
-
         if (driver == null) {
             return new byte[0];
         }
 
-        return driver.getScreenshotAs(
-                OutputType.BYTES
-        );
+        return driver.getScreenshotAs(OutputType.BYTES);
     }
 
     @AfterMethod(alwaysRun = true)
-    public void tearDown(ITestResult result) {
+    public void captureFailureScreenshot(ITestResult result) {
+        if (result.isSuccess() || driver == null) {
+            return;
+        }
 
         try {
-            if (driver != null && !result.isSuccess()) {
+            File screenshot = driver.getScreenshotAs(OutputType.FILE);
 
-                File screenshot = driver.getScreenshotAs(
-                        OutputType.FILE
-                );
+            ScreenshotUtil.saveScreenshot(
+                    screenshot,
+                    result.getName()
+            );
 
-                ScreenshotUtil.saveScreenshot(
-                        screenshot,
-                        result.getName()
-                );
+            attachScreenshot();
 
-                attachScreenshot();
-
-                System.out.println(
-                        "Failure screenshot captured for: "
-                                + result.getName()
-                );
-            }
+            System.out.println(
+                    "Failure screenshot captured for: " + result.getName()
+            );
         } catch (Exception error) {
             System.err.println(
-                    "Screenshot capture failed: "
-                            + error.getMessage()
+                    "Screenshot capture failed: " + error.getMessage()
+            );
+        }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void tearDown() {
+        if (driver == null) {
+            return;
+        }
+
+        try {
+            driver.quit();
+            System.out.println("Appium session closed.");
+        } catch (Exception error) {
+            System.err.println(
+                    "Unable to close Appium session: " + error.getMessage()
             );
         } finally {
-            if (driver != null) {
-                try {
-                    driver.quit();
-
-                    System.out.println(
-                            "Appium session closed."
-                    );
-                } catch (Exception error) {
-                    System.err.println(
-                            "Unable to close Appium session: "
-                                    + error.getMessage()
-                    );
-                } finally {
-                    driver = null;
-                }
-            }
+            driver = null;
         }
     }
 }
