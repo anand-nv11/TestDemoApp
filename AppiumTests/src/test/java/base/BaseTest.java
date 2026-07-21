@@ -75,9 +75,16 @@ public class BaseTest {
                 options
         );
 
+        try {
+            driver.activateApp(bundleId);
+        } catch (Exception ignored) {
+        }
+
+        Thread.sleep(3000);
+
         driver.manage()
                 .timeouts()
-                .implicitlyWait(Duration.ofSeconds(3));
+                .implicitlyWait(Duration.ofSeconds(0));
 
         System.out.println(
                 "Appium Session Created: "

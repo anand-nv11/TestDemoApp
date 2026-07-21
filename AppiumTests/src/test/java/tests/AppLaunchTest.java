@@ -17,7 +17,12 @@ public class AppLaunchTest extends BaseTest {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
         Assert.assertNotNull(driver, "Driver should not be null");
-        Assert.assertTrue(homePage.isAppLoaded(), "App page source should be available");
+        Assert.assertTrue(
+                homePage.isAppLoaded(),
+                "Application did not finish loading."
+        );
+
+        System.out.println(driver.getPageSource());
 
         System.out.println("App launched successfully.");
     }

@@ -2,35 +2,58 @@ package pages;
 
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ios.IOSDriver;
+import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 public class ComponentsHomePage {
 
-    private final IOSDriver driver;
+    private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(20);
 
-    // Root tab view accessibility identifier - matches ContentView.swift line 26
-    private static final String ROOT_TAB_VIEW_ID = "RootTabView";
+    private final IOSDriver driver;
+    private final WebDriverWait wait;
 
     public ComponentsHomePage(IOSDriver driver) {
+        if (driver == null) {
+            throw new IllegalArgumentException("IOSDriver cannot be null");
+        }
         this.driver = driver;
+        this.wait = new WebDriverWait(driver, WAIT_TIMEOUT);
     }
 
-    /**
-     * Check if the app is loaded by verifying the root tab view is present
-     */
+    private By componentsTabLocator() {
+        return AppiumBy.iOSNsPredicateString(
+                "type == 'XCUIElementTypeButton' AND " +
+                        "(name == 'Components' OR label == 'Components')"
+        );
+    }
+
     public boolean isAppLoaded() {
         try {
-            List<WebElement> rootElements = driver.findElements(
-                    AppiumBy.accessibilityId(ROOT_TAB_VIEW_ID)
-            );
-            return !rootElements.isEmpty();
-        } catch (Exception e) {
-            System.err.println("Error checking if app is loaded: " + e.getMessage());
+            return wait.until(currentDriver -> {
+                boolean loginVisible = !currentDriver.findElements(
+                        AppiumBy.accessibilityId("loginEmailField")
+                ).isEmpty();
+
+                boolean componentsVisible = !currentDriver.findElements(
+                        componentsTabLocator()
+                ).isEmpty();
+
+                return loginVisible || componentsVisible;
+            });
+        } catch (TimeoutException error) {
+            System.err.println("Neither login screen nor Components tab became visible.");
             return false;
         }
+    }
+
+    public boolean isComponentsScreenVisible() {
+        return !driver.findElements(componentsTabLocator()).isEmpty();
     }
 
     public String pageSource() {
@@ -38,8 +61,11 @@ public class ComponentsHomePage {
     }
 
     public List<WebElement> findByText(String text) {
+        String escaped = text.replace("'", "\\'");
         return driver.findElements(AppiumBy.iOSNsPredicateString(
-                "name == '" + text + "' OR label == '" + text + "' OR value == '" + text + "'"
+                "name == '" + escaped + "' OR " +
+                        "label == '" + escaped + "' OR " +
+                        "value == '" + escaped + "'"
         ));
     }
 
@@ -49,22 +75,16 @@ public class ComponentsHomePage {
 
     public boolean tapIfVisible(String text) {
         List<WebElement> elements = findByText(text);
-        if (elements.isEmpty()) {
-            System.out.println(text + " not found.");
-            return false;
-        }
-
+        if (elements.isEmpty()) return false;
         elements.get(0).click();
         return true;
     }
 
     public boolean tapAccessibilityIdIfVisible(String accessibilityId) {
-        List<WebElement> elements = driver.findElements(AppiumBy.accessibilityId(accessibilityId));
-        if (elements.isEmpty()) {
-            System.out.println(accessibilityId + " not found.");
-            return false;
-        }
-
+        List<WebElement> elements = driver.findElements(
+                AppiumBy.accessibilityId(accessibilityId)
+        );
+        if (elements.isEmpty()) return false;
         elements.get(0).click();
         return true;
     }
@@ -74,51 +94,49 @@ public class ComponentsHomePage {
     }
 
     public boolean scrollAndVerifyText(String text, int maxScrolls) {
-        for (int i = 0; i <= maxScrolls; i++) {
-            if (isTextVisible(text)) {
-                return true;
+        for (int attempt = 0; attempt <= maxScrolls; attempt++) {
+            if (isTextVisible(text)) return true;
+            if (attempt < maxScrolls) {
+                swipeUp();
+                pauseAfterSwipe();
             }
-
-            swipeUp();
-            sleep();
         }
-
         return false;
     }
 
     public boolean scrollAndTapText(String text, int maxScrolls) {
-        for (int i = 0; i <= maxScrolls; i++) {
-            if (tapIfVisible(text)) {
-                return true;
+        for (int attempt = 0; attempt <= maxScrolls; attempt++) {
+            if (tapIfVisible(text)) return true;
+            if (attempt < maxScrolls) {
+                swipeUp();
+                pauseAfterSwipe();
             }
-
-            swipeUp();
-            sleep();
         }
-
         return false;
     }
 
     public int countButtons() {
-        return driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeButton")).size();
+        return driver.findElements(AppiumBy.className("XCUIElementTypeButton")).size();
     }
 
     public int countCells() {
-        return driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeCell")).size();
+        return driver.findElements(AppiumBy.className("XCUIElementTypeCell")).size();
     }
 
     public int countTextFields() {
-        return driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeTextField")).size();
+        return driver.findElements(AppiumBy.className("XCUIElementTypeTextField")).size();
     }
 
     public int countSwitches() {
-        return driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeSwitch")).size();
+        return driver.findElements(AppiumBy.className("XCUIElementTypeSwitch")).size();
     }
 
-    private void sleep() {
+    private void pauseAfterSwipe() {
         try {
-            Thread.sleep(800);
-        } catch (InterruptedException ignored) {
+            Thread.sleep(700);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Swipe wait interrupted", error);
         }
     }
 }
