@@ -85,11 +85,8 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
         XCTAssertTrue(passwordField.waitForExistence(timeout: 15))
         XCTAssertTrue(loginButton.waitForExistence(timeout: 15))
 
-        emailField.tap()
-        emailField.typeText("invalid-email")
-
-        passwordField.tap()
-        passwordField.typeText("DemoPass1!")
+        enterText(emailField, text: "invalid-email")
+        enterText(passwordField, text: "DemoPass1!")
 
         XCTAssertFalse(
             loginButton.isEnabled,
@@ -112,8 +109,7 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
             "loginEmailField was not found."
         )
 
-        emailField.tap()
-        emailField.typeText("demo@example.com")
+        enterText(emailField, text: "demo@example.com")
 
         let passwordField = app.secureTextFields["loginPasswordField"]
         XCTAssertTrue(
@@ -121,8 +117,7 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
             "loginPasswordField was not found."
         )
 
-        passwordField.tap()
-        passwordField.typeText("DemoPass1!")
+        enterText(passwordField, text: "DemoPass1!")
 
         let loginButton = app.buttons["loginButton"]
         XCTAssertTrue(
@@ -135,6 +130,45 @@ final class SwiftUIDemoAllComponentsUITests: XCTestCase {
         )
 
         loginButton.tap()
+    }
+
+
+    @MainActor
+    private func enterText(_ element: XCUIElement, text: String) {
+        XCTAssertTrue(element.waitForExistence(timeout: 15))
+
+        element.tap()
+
+        let keyboard = app.keyboards.firstMatch
+        if !keyboard.waitForExistence(timeout: 3) {
+            element.tap()
+            XCTAssertTrue(keyboard.waitForExistence(timeout: 3),
+                          "Keyboard did not appear for \(element)")
+        }
+
+        if let current = element.value as? String,
+           current != element.placeholderValue {
+            element.clearText()
+        }
+
+        element.typeText(text)
+    }
+}
+
+private extension XCUIElement {
+
+    var placeholderValue: String? {
+        value as? String
+    }
+
+    func clearText() {
+        guard let stringValue = value as? String,
+              !stringValue.isEmpty,
+              stringValue != placeholderValue else { return }
+
+        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue,
+                                  count: stringValue.count)
+        typeText(deleteString)
     }
 }
 
