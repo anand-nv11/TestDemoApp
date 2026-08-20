@@ -92,7 +92,15 @@ public class LoginPage {
         return wait.until(driver -> {
             try {
                 WebElement element = driver.findElement(locator);
+<<<<<<< HEAD
 
+=======
+<<<<<<< HEAD
+                
+=======
+
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                 // Check if element is displayed
                 if (!element.isDisplayed()) {
                     System.out.println("Element not displayed: " + locator);
@@ -112,8 +120,18 @@ public class LoginPage {
 
                 if (location.getX() < 0 || location.getY() < 0 ||
                         size.getWidth() <= 0 || size.getHeight() <= 0) {
+<<<<<<< HEAD
                     System.out.println("Element has invalid coordinates: " + locator +
                             " at (" + location.getX() + ", " + location.getY() +
+=======
+<<<<<<< HEAD
+                    System.out.println("Element has invalid coordinates: " + locator + 
+                            " at (" + location.getX() + ", " + location.getY() + 
+=======
+                    System.out.println("Element has invalid coordinates: " + locator +
+                            " at (" + location.getX() + ", " + location.getY() +
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                             ") with size (" + size.getWidth() + ", " + size.getHeight() + ")");
                     return null;
                 }
@@ -152,7 +170,15 @@ public class LoginPage {
 
                 // Ensure element is visible in viewport
                 scrollIntoView(element);
+<<<<<<< HEAD
 
+=======
+<<<<<<< HEAD
+                
+=======
+
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                 // Add stabilization delay
                 pause(Duration.ofMillis(500));
 
@@ -197,9 +223,21 @@ public class LoginPage {
 
             } catch (TimeoutException e) {
                 lastError = e;
+<<<<<<< HEAD
                 System.out.println("Timeout waiting for element to be interactable: " + elementName +
                         " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
 
+=======
+<<<<<<< HEAD
+                System.out.println("Timeout waiting for element to be interactable: " + elementName + 
+                        " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
+                
+=======
+                System.out.println("Timeout waiting for element to be interactable: " + elementName +
+                        " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
+
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                 if (attempt < MAX_CLICK_RETRIES) {
                     logPageSourceForDebug(elementName);
                     pause(Duration.ofMillis(500));
@@ -214,7 +252,15 @@ public class LoginPage {
         }
 
         captureDiagnostics("click-failed-" + elementName);
+<<<<<<< HEAD
         throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES +
+=======
+<<<<<<< HEAD
+        throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES + 
+=======
+        throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES +
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                 " attempts", lastError);
     }
 
@@ -278,7 +324,15 @@ public class LoginPage {
             String pageSource = driver.getPageSource();
             int maxLength = 2000;
             if (pageSource.length() > maxLength) {
+<<<<<<< HEAD
                 System.out.println("Page source (truncated) for " + context + ": " +
+=======
+<<<<<<< HEAD
+                System.out.println("Page source (truncated) for " + context + ": " + 
+=======
+                System.out.println("Page source (truncated) for " + context + ": " +
+>>>>>>> 0be48a8 (change login screen code and test case in java file .)
+>>>>>>> 169c65d (change login screen code and test case in java file .)
                         pageSource.substring(0, maxLength));
             } else {
                 System.out.println("Page source for " + context + ": " + pageSource);
