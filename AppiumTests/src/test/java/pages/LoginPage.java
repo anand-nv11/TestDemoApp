@@ -26,15 +26,12 @@ import java.util.Map;
 public class LoginPage {
 
     private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(40);
-    private static final Duration SHORT_WAIT = Duration.ofSeconds(5);
     private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
-    private static final Duration ELEMENT_STABILIZE_DELAY = Duration.ofMillis(1000);
     private static final int MAX_LOGIN_RETRIES = 3;
     private static final int MAX_CLICK_RETRIES = 5;
 
     private final IOSDriver driver;
     private final WebDriverWait wait;
-    private final WebDriverWait shortWait;
 
     private final By emailFieldLocator =
             AppiumBy.accessibilityId("loginEmailField");
@@ -68,7 +65,6 @@ public class LoginPage {
         }
         this.driver = driver;
         this.wait = new WebDriverWait(driver, WAIT_TIMEOUT);
-        this.shortWait = new WebDriverWait(driver, SHORT_WAIT);
     }
 
     /**
@@ -92,15 +88,7 @@ public class LoginPage {
         return wait.until(driver -> {
             try {
                 WebElement element = driver.findElement(locator);
-<<<<<<< HEAD
 
-=======
-<<<<<<< HEAD
-                
-=======
-
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                 // Check if element is displayed
                 if (!element.isDisplayed()) {
                     System.out.println("Element not displayed: " + locator);
@@ -120,18 +108,8 @@ public class LoginPage {
 
                 if (location.getX() < 0 || location.getY() < 0 ||
                         size.getWidth() <= 0 || size.getHeight() <= 0) {
-<<<<<<< HEAD
                     System.out.println("Element has invalid coordinates: " + locator +
                             " at (" + location.getX() + ", " + location.getY() +
-=======
-<<<<<<< HEAD
-                    System.out.println("Element has invalid coordinates: " + locator + 
-                            " at (" + location.getX() + ", " + location.getY() + 
-=======
-                    System.out.println("Element has invalid coordinates: " + locator +
-                            " at (" + location.getX() + ", " + location.getY() +
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                             ") with size (" + size.getWidth() + ", " + size.getHeight() + ")");
                     return null;
                 }
@@ -141,18 +119,6 @@ public class LoginPage {
                 return null;
             }
         });
-    }
-
-    /**
-     * Scroll element into view using JavaScript execution
-     */
-    private void scrollIntoView(WebElement element) {
-        try {
-            driver.executeScript("arguments[0].scrollIntoView(true);", element);
-            pause(ELEMENT_STABILIZE_DELAY);
-        } catch (Exception e) {
-            System.out.println("Scroll into view failed (non-critical): " + e.getMessage());
-        }
     }
 
     /**
@@ -168,17 +134,6 @@ public class LoginPage {
                 // Wait for element to be interactable
                 WebElement element = waitForInteractable(locator);
 
-                // Ensure element is visible in viewport
-                scrollIntoView(element);
-<<<<<<< HEAD
-
-=======
-<<<<<<< HEAD
-                
-=======
-
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                 // Add stabilization delay
                 pause(Duration.ofMillis(500));
 
@@ -223,21 +178,9 @@ public class LoginPage {
 
             } catch (TimeoutException e) {
                 lastError = e;
-<<<<<<< HEAD
                 System.out.println("Timeout waiting for element to be interactable: " + elementName +
                         " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
 
-=======
-<<<<<<< HEAD
-                System.out.println("Timeout waiting for element to be interactable: " + elementName + 
-                        " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
-                
-=======
-                System.out.println("Timeout waiting for element to be interactable: " + elementName +
-                        " (attempt " + attempt + "/" + MAX_CLICK_RETRIES + ")");
-
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                 if (attempt < MAX_CLICK_RETRIES) {
                     logPageSourceForDebug(elementName);
                     pause(Duration.ofMillis(500));
@@ -252,22 +195,14 @@ public class LoginPage {
         }
 
         captureDiagnostics("click-failed-" + elementName);
-<<<<<<< HEAD
         throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES +
-=======
-<<<<<<< HEAD
-        throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES + 
-=======
-        throw new RuntimeException("Failed to click " + elementName + " after " + MAX_CLICK_RETRIES +
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                 " attempts", lastError);
     }
 
     /**
      * Reliable text input with clear and verification
      */
-    private void reliableInput(By locator, String elementName, String text) {
+    private void reliableInput(By locator, String elementName, String text, boolean verifyExactValue) {
         Exception lastError = null;
 
         for (int attempt = 1; attempt <= 3; attempt++) {
@@ -275,7 +210,6 @@ public class LoginPage {
                 System.out.println("Attempting to enter text in " + elementName + " (attempt " + attempt + "/3)");
 
                 WebElement element = waitForInteractable(locator);
-                scrollIntoView(element);
                 pause(Duration.ofMillis(500));
 
                 // Clear the field
@@ -286,9 +220,13 @@ public class LoginPage {
                 element.sendKeys(text);
                 pause(Duration.ofMillis(500));
 
-                // Verify text was entered
+                // Verify text was entered. iOS SecureField does not expose the raw password value.
                 String currentValue = element.getAttribute("value");
-                if (currentValue == null || !currentValue.contains(text)) {
+                boolean inputVerified = verifyExactValue
+                        ? currentValue != null && currentValue.contains(text)
+                        : hasSecureValue(currentValue);
+
+                if (!inputVerified) {
                     System.out.println("Text not properly entered. Expected: " + text + ", Got: " + currentValue);
                     lastError = new RuntimeException("Text input verification failed");
                     if (attempt < 3) {
@@ -319,20 +257,18 @@ public class LoginPage {
         throw new RuntimeException("Failed to input text in " + elementName, lastError);
     }
 
+    private boolean hasSecureValue(String value) {
+        return value != null
+                && !value.isBlank()
+                && !"Password".equalsIgnoreCase(value);
+    }
+
     private void logPageSourceForDebug(String context) {
         try {
             String pageSource = driver.getPageSource();
             int maxLength = 2000;
             if (pageSource.length() > maxLength) {
-<<<<<<< HEAD
                 System.out.println("Page source (truncated) for " + context + ": " +
-=======
-<<<<<<< HEAD
-                System.out.println("Page source (truncated) for " + context + ": " + 
-=======
-                System.out.println("Page source (truncated) for " + context + ": " +
->>>>>>> 0be48a8 (change login screen code and test case in java file .)
->>>>>>> 169c65d (change login screen code and test case in java file .)
                         pageSource.substring(0, maxLength));
             } else {
                 System.out.println("Page source for " + context + ": " + pageSource);
@@ -355,14 +291,14 @@ public class LoginPage {
      * Enter email with enhanced error handling
      */
     public void enterEmail(String email) {
-        reliableInput(emailFieldLocator, "Email Field", email);
+        reliableInput(emailFieldLocator, "Email Field", email, true);
     }
 
     /**
      * Enter password with enhanced error handling
      */
     public void enterPassword(String password) {
-        reliableInput(passwordFieldLocator, "Password Field", password);
+        reliableInput(passwordFieldLocator, "Password Field", password, false);
         try {
             driver.hideKeyboard();
         } catch (Exception ignored) {
@@ -468,7 +404,7 @@ public class LoginPage {
 
     private void captureDiagnostics(String name) {
         try {
-            Path directory = Path.of("AppiumTests/screenshots");
+            Path directory = Path.of("screenshots");
             Files.createDirectories(directory);
             long timestamp = System.currentTimeMillis();
             File screenshot = driver.getScreenshotAs(OutputType.FILE);

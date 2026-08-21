@@ -16,7 +16,8 @@ public class BasicComponentTest extends BaseTest {
     public void verifyBasicElementsExist() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
-        homePage.waitForAccessibilityId("ComponentCatalogList",30);
+        ensureLoggedIn();
+        homePage.waitForAccessibilityId("ComponentCatalogList", 30);
 
         int buttons = homePage.countButtons();
         int cells = homePage.countCells();
@@ -33,6 +34,7 @@ public class BasicComponentTest extends BaseTest {
     public void verifyTextFieldsSafely() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
+        ensureLoggedIn();
         System.out.println("Text field count: " + homePage.countTextFields());
 
         Assert.assertTrue(true, "Text field scan completed");
@@ -44,6 +46,7 @@ public class BasicComponentTest extends BaseTest {
     public void verifySwitchesSafely() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
+        ensureLoggedIn();
         System.out.println("Switch count: " + homePage.countSwitches());
 
         Assert.assertTrue(true, "Switch scan completed");

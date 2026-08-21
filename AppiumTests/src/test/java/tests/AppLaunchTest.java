@@ -17,12 +17,14 @@ public class AppLaunchTest extends BaseTest {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
         Assert.assertNotNull(driver, "Driver should not be null");
+        ensureLoggedIn();
+
         Assert.assertTrue(
                 homePage.isAppLoaded(),
                 "Application did not finish loading."
         );
 
-        homePage.waitForAccessibilityId("homeScreen",30);
+        homePage.waitForAccessibilityId("ComponentCatalogList", 30);
 
         System.out.println(driver.getPageSource());
 

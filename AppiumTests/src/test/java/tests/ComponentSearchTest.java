@@ -10,12 +10,13 @@ import pages.SearchPage;
 @Feature("Search")
 public class ComponentSearchTest extends BaseTest {
 
-    @Test(description = "Search Scrolling component if search field exists")
+    @Test(description = "Search ScrollView component if search field exists")
     @Story("Search")
     @Severity(SeverityLevel.NORMAL)
-    public void searchScrollingIfSearchAvailable() {
+    public void searchScrollViewIfSearchAvailable() {
         SearchPage searchPage = new SearchPage(driver);
 
+        ensureLoggedIn();
         boolean searchAvailable = searchPage.searchIfSearchFieldExists("ScrollView");
 
         if (!searchAvailable) {
@@ -26,6 +27,6 @@ public class ComponentSearchTest extends BaseTest {
 
         boolean resultVisible = searchPage.isResultVisible("ScrollView");
 
-        Assert.assertTrue(resultVisible, "Search result should contain Scrolling");
+        Assert.assertTrue(resultVisible, "Search result should contain ScrollView");
     }
 }

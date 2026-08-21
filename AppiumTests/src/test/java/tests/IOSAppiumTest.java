@@ -9,6 +9,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.testng.Assert;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
+import pages.LoginPage;
 import utils.ScreenshotUtil;
 
 import java.io.File;
@@ -19,6 +20,9 @@ import java.util.List;
 @Epic("iOS Automation")
 @Feature("SwiftUI Demo Components")
 public class IOSAppiumTest {
+
+    private static final String VALID_EMAIL = "demo@example.com";
+    private static final String VALID_PASSWORD = "DemoPass1!";
 
     private IOSDriver driver;
 
@@ -60,25 +64,30 @@ public class IOSAppiumTest {
         Assert.assertNotNull(driver, "Driver should not be null");
     }
 
-    @Test(description = "Tap Scrolling component if available")
+    @Test(description = "Tap ScrollView component if available")
     @Story("Component Navigation")
     @Severity(SeverityLevel.NORMAL)
-    public void tapScrollingComponent() {
+    public void tapScrollViewComponent() {
+        LoginPage loginPage = new LoginPage(driver);
+        if (loginPage.isLoginScreenVisible()) {
+            loginPage.login(VALID_EMAIL, VALID_PASSWORD);
+        }
+
         List<WebElement> scrollingElements = driver.findElements(AppiumBy.iOSNsPredicateString(
-                "name == 'Scrolling' OR label == 'Scrolling' OR value == 'Scrolling'"
+                "name == 'ScrollView' OR label == 'ScrollView' OR value == 'ScrollView'"
         ));
 
         if (scrollingElements.isEmpty()) {
-            System.out.println("Scrolling element not found. App launched successfully.");
+            System.out.println("ScrollView element not found. App launched successfully.");
             System.out.println("Current page source:");
             System.out.println(driver.getPageSource());
 
-            Assert.assertTrue(true, "Scrolling element not available on current screen");
+            Assert.assertTrue(true, "ScrollView element not available on current screen");
             return;
         }
 
         scrollingElements.get(0).click();
-        Assert.assertTrue(true, "Scrolling component tapped successfully");
+        Assert.assertTrue(true, "ScrollView component tapped successfully");
     }
 
     @AfterMethod

@@ -17,7 +17,7 @@ public class LoginScreenTest extends BaseTest {
     private static final String VALID_EMAIL = "demo@example.com";
     private static final String VALID_PASSWORD = "DemoPass1!";
 
-    @Test(description = "Verify successful login")
+    @Test(description = "Verify successful login", priority = 50)
     @Story("Successful Login")
     @Severity(SeverityLevel.CRITICAL)
     public void testSuccessfulLogin() {
@@ -34,7 +34,7 @@ public class LoginScreenTest extends BaseTest {
         );
     }
 
-    @Test(description = "Verify invalid credentials keep user on login screen")
+    @Test(description = "Verify invalid credentials keep user on login screen", priority = 20)
     @Story("Invalid Login")
     public void testLoginWithInvalidCredentials() {
         LoginPage loginPage = new LoginPage(driver);
@@ -53,7 +53,7 @@ public class LoginScreenTest extends BaseTest {
         );
     }
 
-    @Test(description = "Verify login screen is visible")
+    @Test(description = "Verify login screen is visible", priority = 10)
     @Story("Login Screen")
     public void testLoginScreenVisible() {
         LoginPage loginPage = new LoginPage(driver);
@@ -64,7 +64,7 @@ public class LoginScreenTest extends BaseTest {
         );
     }
 
-    @Test(description = "Verify login button is initially disabled")
+    @Test(description = "Verify login button is initially disabled", priority = 11)
     @Story("Validation")
     public void testLoginButtonInitiallyDisabled() {
         LoginPage loginPage = new LoginPage(driver);
@@ -75,7 +75,7 @@ public class LoginScreenTest extends BaseTest {
         );
     }
 
-    @Test(description = "Verify Remember Me toggle")
+    @Test(description = "Verify Remember Me toggle", priority = 30)
     @Story("Remember Me")
     public void testRememberMeToggle() {
         LoginPage loginPage = new LoginPage(driver);
@@ -88,7 +88,7 @@ public class LoginScreenTest extends BaseTest {
         );
     }
 
-    @Test(description = "Verify password visibility toggle")
+    @Test(description = "Verify password visibility toggle", priority = 31)
     @Story("Password Visibility")
     public void testPasswordVisibilityToggle() {
         LoginPage loginPage = new LoginPage(driver);

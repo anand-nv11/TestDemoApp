@@ -31,8 +31,18 @@ public class SearchPage {
     }
 
     public boolean isResultVisible(String keyword) {
+        String escapedKeyword = escapePredicateValue(keyword);
+
         return !driver.findElements(AppiumBy.iOSNsPredicateString(
-                "name CONTAINS '" + keyword + "' OR label CONTAINS '" + keyword + "' OR value CONTAINS '" + keyword + "'"
+                "name CONTAINS '" + escapedKeyword + "' OR " +
+                        "label CONTAINS '" + escapedKeyword + "' OR " +
+                        "value CONTAINS '" + escapedKeyword + "'"
         )).isEmpty();
+    }
+
+    private String escapePredicateValue(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("'", "\\'");
     }
 }

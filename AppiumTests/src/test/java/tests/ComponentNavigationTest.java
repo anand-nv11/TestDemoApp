@@ -14,28 +14,28 @@ public class ComponentNavigationTest extends BaseTest {
     @DataProvider(name = "components")
     public Object[][] components() {
         return new Object[][]{
+                {"Box"},
                 {"Button"},
-                {"Text"},
-                {"TextField"},
-                {"SecureField"},
-                {"Toggle"},
-                {"Slider"},
-                {"Stepper"},
-                {"Picker"},
+                {"CalendarPicker"},
+                {"Checkbox"},
+                {"ClockPicker"},
+                {"ColorWell"},
                 {"DatePicker"},
-                {"List"},
-                {"Grid"},
-                {"Form"},
-                {"Alert"},
-                {"Sheet"},
-                {"Navigation"},
-                {"Map"},
+                {"FontPicker"},
+                {"HelpButton"},
+                {"Image"},
+                {"Label"},
+                {"Level / Progress View"},
+                {"PopUp / Alert / Sheet"},
+                {"Radio Button"},
+                {"Separator / Divider"},
+                {"Slider"},
                 {"ScrollView"},
-                {"Images"},
-                {"Animation"},
-                {"Gesture"},
-                {"TabView"},
-                {"DisclosureGroup"}
+                {"Switch / Toggle"},
+                {"Tabs / TabView"},
+                {"TextField"},
+                {"TextView / TextEditor"},
+                {"TimePicker"}
         };
     }
 
@@ -45,6 +45,7 @@ public class ComponentNavigationTest extends BaseTest {
     public void verifyComponentAvailable(String componentName) {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
+        ensureLoggedIn();
         boolean found = homePage.scrollAndVerifyText(componentName, 3);
 
         if (!found) {
@@ -55,19 +56,20 @@ public class ComponentNavigationTest extends BaseTest {
         Assert.assertTrue(true, "Component scan completed for: " + componentName);
     }
 
-    @Test(description = "Tap Scrolling component if available")
+    @Test(description = "Tap ScrollView component if available")
     @Story("Component Tap")
     @Severity(SeverityLevel.NORMAL)
-    public void tapScrollingComponentIfAvailable() {
+    public void tapScrollViewComponentIfAvailable() {
         ComponentsHomePage homePage = new ComponentsHomePage(driver);
 
+        ensureLoggedIn();
         boolean tapped = homePage.scrollAndTapText("ScrollView", 3);
 
         if (!tapped) {
-            System.out.println("Scrolling component not found, app is still stable.");
+            System.out.println("ScrollView component not found, app is still stable.");
             System.out.println(homePage.pageSource());
         }
 
-        Assert.assertTrue(true, "Scrolling component test completed.");
+        Assert.assertTrue(true, "ScrollView component test completed.");
     }
 }

@@ -8,6 +8,7 @@ import org.testng.ITestResult;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import pages.LoginPage;
 import utils.ScreenshotUtil;
 
 import java.io.File;
@@ -16,6 +17,9 @@ import java.net.URL;
 import java.time.Duration;
 
 public class BaseTest {
+
+    private static final String VALID_EMAIL = "demo@example.com";
+    private static final String VALID_PASSWORD = "DemoPass1!";
 
     protected IOSDriver driver;
 
@@ -143,6 +147,14 @@ public class BaseTest {
      */
     public IOSDriver getDriver() {
         return driver;
+    }
+
+    protected void ensureLoggedIn() {
+        LoginPage loginPage = new LoginPage(driver);
+
+        if (loginPage.isLoginScreenVisible()) {
+            loginPage.login(VALID_EMAIL, VALID_PASSWORD);
+        }
     }
 
     @Attachment(
